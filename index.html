@@ -1,0 +1,1232 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🏚️ کلونی پسا-آخرالزمانی</title>
+<style>
+/* ===== تم تیره و پیکسلی ===== */
+@import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700;900&display=swap');
+
+* { margin:0; padding:0; box-sizing:border-box; user-select:none; }
+
+:root {
+  --bg:#0d1117; --panel:#161b22; --panel2:#1f2630; --border:#30363d;
+  --text:#e6edf3; --muted:#8b949e; --green:#3fb950; --blue:#58a6ff;
+  --red:#f85149; --yellow:#d29922; --purple:#bc8cff; --orange:#f0883e;
+}
+
+body {
+  font-family:'Vazirmatn',sans-serif;
+  background:var(--bg); color:var(--text);
+  overflow-x:hidden;
+}
+
+#app { max-width:1200px; margin:0 auto; padding:10px; }
+
+/* هدر */
+header {
+  background:var(--panel); border:2px solid var(--border); border-radius:8px;
+  padding:10px 14px; margin-bottom:10px;
+  display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;
+}
+header h1 { font-size:1.2rem; color:var(--yellow); }
+#turnInfo { color:var(--muted); font-size:.85rem; }
+#turnInfo b { color:var(--blue); }
+
+/* منابع */
+#resources {
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
+  gap:8px; margin-bottom:10px;
+}
+.res-card {
+  background:var(--panel); border:1px solid var(--border); border-radius:8px;
+  padding:8px; text-align:center;
+}
+.res-card .icon { font-size:1.4rem; display:block; }
+.res-card .name { font-size:.7rem; color:var(--muted); }
+.res-card .value { font-size:1.2rem; font-weight:900; }
+.res-card .delta { font-size:.65rem; }
+.res-card .delta.pos { color:var(--green); }
+.res-card .delta.neg { color:var(--red); }
+
+/* چیدمان */
+#mainGrid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+@media (max-width:850px){ #mainGrid{grid-template-columns:1fr;} }
+
+.panel {
+  background:var(--panel); border:1px solid var(--border); border-radius:8px;
+  padding:12px; margin-bottom:12px;
+}
+.panel h2 {
+  font-size:.95rem; color:var(--blue);
+  border-bottom:1px solid var(--border); padding-bottom:6px; margin-bottom:10px;
+}
+
+/* ===== نقشه / گرید ===== */
+#mapContainer {
+  background:var(--panel); border:1px solid var(--border); border-radius:8px;
+  padding:12px; margin-bottom:12px;
+}
+#mapHeader { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:6px; }
+#mapHeader h2 { font-size:.95rem; color:var(--blue); border:none; padding:0; margin:0; }
+#mapTools { display:flex; gap:6px; flex-wrap:wrap; }
+#mapTools button {
+  background:var(--panel2); border:1px solid var(--border); color:var(--text);
+  padding:5px 10px; border-radius:5px; cursor:pointer; font-family:inherit; font-size:.75rem;
+}
+#mapTools button.active { border-color:var(--yellow); color:var(--yellow); }
+
+#map {
+  display:grid; gap:3px; background:var(--bg);
+  border:2px solid var(--border); border-radius:6px; padding:6px;
+  margin:0 auto;
+}
+.cell {
+  background:var(--panel2); border-radius:3px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:1.3rem; cursor:pointer; position:relative;
+  aspect-ratio:1; transition:all .2s;
+}
+.cell:hover { background:#2a3441; }
+.cell.empty { background:#1a2029; }
+.cell.building { background:#2d333b; border:1px solid var(--border); }
+.cell.selected { outline:2px solid var(--yellow); }
+
+/* نشانگر سطح ساختمان */
+.level-badge {
+  position:absolute; top:-4px; right:-4px;
+  background:var(--orange); color:#000;
+  font-size:.55rem; font-weight:900;
+  width:14px; height:14px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  border:1px solid #000;
+}
+
+/* انیمیشن ارتقا */
+@keyframes upgradePulse {
+  0% { transform:scale(1); filter:brightness(1); }
+  50% { transform:scale(1.3); filter:brightness(2); }
+  100% { transform:scale(1); filter:brightness(1); }
+}
+.upgrading { animation:upgradePulse .8s ease-in-out; }
+
+/* انیمیشن بازگشت */
+@keyframes walkIn {
+  0% { transform:translateY(-30px); opacity:0; }
+  60% { transform:translateY(5px); }
+  100% { transform:translateY(0); opacity:1; }
+}
+.returning { animation:walkIn 1.2s ease-out; }
+
+/* انیمیشن حمله */
+@keyframes shake {
+  0%,100%{transform:translateX(0);}
+  25%{transform:translateX(-4px);}
+  75%{transform:translateX(4px);}
+}
+.attack { animation:shake .5s ease-in-out 3; }
+
+/* انیمیشن رعد */
+@keyframes flash {
+  0%,100%{filter:brightness(1);}
+  50%{filter:brightness(2.5);}
+}
+.flash { animation:flash .3s ease-in-out 2; }
+
+/* منوی ساختمان */
+#buildingMenu {
+  position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+  background:var(--panel); border:2px solid var(--yellow); border-radius:10px;
+  padding:16px; z-index:100; min-width:300px; max-width:90vw;
+  box-shadow:0 0 30px rgba(0,0,0,.8);
+  max-height:80vh; overflow-y:auto;
+}
+#buildingMenu.hidden { display:none; }
+#buildingMenu h3 { color:var(--yellow); margin-bottom:10px; font-size:1rem; }
+#buildingMenu .menu-row {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:6px 0; border-bottom:1px dashed var(--border); font-size:.85rem;
+}
+#buildingMenu button {
+  background:var(--panel2); border:1px solid var(--border); color:var(--text);
+  padding:5px 10px; border-radius:5px; cursor:pointer; font-family:inherit; font-size:.8rem;
+}
+#buildingMenu button.primary { background:var(--green); color:#000; font-weight:700; }
+#buildingMenu button.danger { background:var(--red); color:#fff; }
+#buildingMenu button.upgrade { background:var(--orange); color:#000; font-weight:700; }
+#buildingMenu button:disabled { opacity:.5; cursor:not-allowed; }
+#buildingMenu .close {
+  position:absolute; top:8px; left:8px; background:none; border:none;
+  color:var(--muted); font-size:1.2rem; cursor:pointer;
+}
+
+/* بخش ارتقا */
+.upgrade-section {
+  background:var(--panel2); border:1px solid var(--border); border-radius:6px;
+  padding:10px; margin-top:10px;
+}
+.upgrade-section h4 { color:var(--orange); font-size:.85rem; margin-bottom:6px; }
+.upgrade-info { font-size:.75rem; color:var(--muted); margin-bottom:6px; }
+.upgrade-cost { font-size:.75rem; color:var(--yellow); margin-bottom:6px; }
+.level-stars { color:var(--orange); font-size:.8rem; letter-spacing:2px; }
+
+/* منوی ساخت */
+#buildMenu {
+  position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+  background:var(--panel); border:2px solid var(--blue); border-radius:10px;
+  padding:16px; z-index:100; min-width:300px; max-width:90vw;
+  box-shadow:0 0 30px rgba(0,0,0,.8);
+}
+#buildMenu.hidden { display:none; }
+#buildMenu h3 { color:var(--blue); margin-bottom:10px; }
+.build-option {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:8px; border:1px solid var(--border); border-radius:6px; margin-bottom:6px; cursor:pointer;
+}
+.build-option:hover { background:var(--panel2); }
+.build-option .cost { color:var(--yellow); font-size:.75rem; }
+
+/* لاگ */
+#logPanel { max-height:200px; overflow-y:auto; }
+.log-entry { padding:4px 6px; border-bottom:1px solid var(--border); font-size:.75rem; color:var(--muted); }
+.log-entry.good { color:var(--green); }
+.log-entry.bad { color:var(--red); }
+.log-entry.info { color:var(--blue); }
+.log-entry.warn { color:var(--yellow); }
+.log-entry.upgrade { color:var(--orange); }
+
+/* دکمه پایان نوبت */
+#endTurn {
+  width:100%; padding:12px; background:var(--green); color:#000; border:none;
+  border-radius:8px; font-size:1rem; font-weight:900; cursor:pointer; font-family:inherit;
+  box-shadow:0 0 15px rgba(63,185,80,.3);
+}
+#endTurn:hover { filter:brightness(1.15); }
+
+/* جیره */
+.ration-btns { display:flex; gap:6px; margin-top:6px; }
+.ration-btns button {
+  flex:1; padding:6px; background:var(--panel2); border:1px solid var(--border);
+  color:var(--text); border-radius:5px; cursor:pointer; font-family:inherit; font-size:.8rem;
+}
+.ration-btns button.active { border-color:var(--yellow); color:var(--yellow); font-weight:700; }
+
+/* بنر رویداد */
+#eventBanner {
+  position:fixed; top:20px; left:50%; transform:translateX(-50%);
+  background:var(--panel); border:2px solid var(--red); border-radius:8px;
+  padding:12px 20px; z-index:200; font-weight:700; text-align:center;
+  box-shadow:0 0 20px rgba(248,81,73,.5);
+  animation:slideDown .5s ease-out;
+}
+#eventBanner.hidden { display:none; }
+@keyframes slideDown { from{transform:translate(-50%,-50px);opacity:0;} to{transform:translate(-50%,0);opacity:1;} }
+
+/* اسکرول */
+::-webkit-scrollbar{width:6px;}
+::-webkit-scrollbar-track{background:var(--panel);}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+
+/* پایان بازی */
+#gameOver {
+  position:fixed; inset:0; background:rgba(0,0,0,.9); z-index:300;
+  display:flex; align-items:center; justify-content:center; flex-direction:column; gap:15px;
+}
+#gameOver.hidden { display:none; }
+#gameOver h1 { color:var(--red); font-size:2rem; }
+#gameOver button {
+  background:var(--green); color:#000; border:none; padding:12px 30px;
+  border-radius:8px; font-size:1rem; font-weight:900; cursor:pointer; font-family:inherit;
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>🏚️ کلونی پسا-آخرالزمانی</h1>
+    <div id="turnInfo">نوبت <b id="turnNum">۱</b> | روز <b id="dayNum">۱</b></div>
+  </header>
+
+  <div id="resources"></div>
+
+  <!-- نقشه -->
+  <div id="mapContainer">
+    <div id="mapHeader">
+      <h2>🗺️ نقشه کلونی</h2>
+      <div id="mapTools">
+        <button id="btnBuild" onclick="toggleBuildMode()">🔨 ساخت</button>
+        <button id="btnMove" onclick="toggleMoveMode()">↔️ جابه‌جایی</button>
+        <button id="btnDestroy" onclick="toggleDestroyMode()">💥 تخریب</button>
+      </div>
+    </div>
+    <div id="map"></div>
+  </div>
+
+  <div id="mainGrid">
+    <div>
+      <div class="panel">
+        <h2>👥 بازمانده‌ها (<span id="popCount">۱۰</span>/<span id="maxPop">۱۰</span>)</h2>
+        <div style="font-size:.8rem; color:var(--muted); margin-bottom:8px;">
+          هر بازمانده به صورت خودکار در تولید منابع مشارکت می‌کند.
+        </div>
+        <div style="border-top:1px solid var(--border); padding-top:8px;">
+          <div style="font-size:.8rem; color:var(--muted); margin-bottom:4px;">جیره‌بندی:</div>
+          <div class="ration-btns" id="rationBtns">
+            <button data-ration="low">کم</button>
+            <button data-ration="normal" class="active">عادی</button>
+            <button data-ration="high">زیاد</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>🚀 اعزام (اکسپدیشن)</h2>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <select id="expType" style="padding:6px; background:var(--panel2); border:1px solid var(--border); color:var(--text); border-radius:5px; font-family:inherit;">
+            <option value="food">جستجوی غذا</option>
+            <option value="water">جستجوی آب</option>
+            <option value="scrap">جستجوی ضایعات</option>
+            <option value="recruit">جذب بازمانده</option>
+          </select>
+          <select id="expCount" style="padding:6px; background:var(--panel2); border:1px solid var(--border); color:var(--text); border-radius:5px; font-family:inherit;">
+            <option value="1">۱ نفر</option>
+            <option value="2">۲ نفر</option>
+            <option value="3">۳ نفر</option>
+          </select>
+          <button id="startExp" style="padding:8px; background:var(--blue); color:#000; border:none; border-radius:5px; font-weight:700; cursor:pointer; font-family:inherit;">شروع اعزام</button>
+        </div>
+        <div id="activeExps" style="margin-top:8px;"></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="panel">
+        <h2>📜 گزارش رویدادها</h2>
+        <div id="logPanel"></div>
+      </div>
+      <button id="endTurn">⏭️ پایان نوبت</button>
+    </div>
+  </div>
+</div>
+
+<!-- منوی ساختمان -->
+<div id="buildingMenu" class="hidden">
+  <button class="close" onclick="closeBuildingMenu()">✖</button>
+  <h3 id="bmTitle">ساختمان</h3>
+  <div id="bmContent"></div>
+</div>
+
+<!-- منوی ساخت -->
+<div id="buildMenu" class="hidden">
+  <button class="close" onclick="closeBuildMenu()">✖</button>
+  <h3>🔨 انتخاب ساختمان</h3>
+  <div id="buildOptions"></div>
+</div>
+
+<!-- بنر رویداد -->
+<div id="eventBanner" class="hidden"></div>
+
+<!-- پایان بازی -->
+<div id="gameOver" class="hidden">
+  <h1>💀 همه مردند!</h1>
+  <p>کلونی شما نابود شد.</p>
+  <button onclick="location.reload()">شروع دوباره</button>
+</div>
+
+<script>
+/* ============================================================
+   کلونی پسا-آخرالزمانی - نسخه با سیستم ارتقای ساختمان
+   ============================================================ */
+
+// ---------- تعریف ساختمان‌ها با سیستم ارتقا ----------
+const MAX_LEVEL = 5;
+
+const BUILDING_TYPES = {
+  castle: {
+    name:'قلعه', icon:'🏰', size:2, hp:100, maxHp:100,
+    cost:{scrap:60, wood:80}, desc:'قلعه مرکزی - مرکز فرماندهی',
+    canBuild:true, canMove:true, canDestroy:false,
+    upgradeable:true,
+    // تولید در هر سطح
+    production: { food:0, water:0, scrap:0, wood:0, knowledge:0 },
+    // قابلیت ویژه در سطح ۵
+    specialAt5: '🔒 قفل ساختمان‌های پیشرفته',
+    upgradeCost: (level) => ({ scrap: 40 + level*20, wood: 30 + level*15, knowledge: level*5 })
+  },
+  wall: {
+    name:'دیوار', icon:'🧱', size:1, hp:50, maxHp:50,
+    cost:{scrap:5, wood:2}, desc:'دیوار دفاعی',
+    canBuild:true, canMove:true, canDestroy:true,
+    upgradeable:true,
+    production: { food:0, water:0, scrap:0, wood:0, knowledge:0 },
+    specialAt5: '🛡️ مقاومت در برابر حمله زامبی',
+    upgradeCost: (level) => ({ scrap: 10 + level*5, wood: 5 + level*3 })
+  },
+  farm: {
+    name:'مزرعه', icon:'🌾', size:2, hp:40, maxHp:40,
+    cost:{scrap:15, wood:25}, desc:'تولید غذا',
+    canBuild:true, canMove:true, canDestroy:true,
+    upgradeable:true,
+    production: { food:5, water:0, scrap:0, wood:0, knowledge:0 },
+    specialAt5: '🌱 تولید غذای اضافه در هر نوبت',
+    upgradeCost: (level) => ({ scrap: 15 + level*10, wood: 20 + level*10 })
+  },
+  well: {
+    name:'چاه آب', icon:'🕳️', size:1, hp:30, maxHp:30,
+    cost:{scrap:20, wood:10}, desc:'تولید آب',
+    canBuild:true, canMove:true, canDestroy:true,
+    upgradeable:true,
+    production: { food:0, water:5, scrap:0, wood:0, knowledge:0 },
+    specialAt5: '💧 تولید آب اضافه در هر نوبت',
+    upgradeCost: (level) => ({ scrap: 15 + level*10, wood: 10 + level*5 })
+  },
+  warehouse: {
+    name:'انبار', icon:'📦', size:2, hp:60, maxHp:60,
+    cost:{scrap:30, wood:40}, desc:'افزایش ظرفیت ذخیره منابع',
+    canBuild:true, canMove:true, canDestroy:true,
+    upgradeable:true,
+    production: { food:0, water:0, scrap:0, wood:0, knowledge:0 },
+    specialAt5: '📦 ظرفیت بسیار بزرگ',
+    upgradeCost: (level) => ({ scrap: 25 + level*15, wood: 30 + level*15 })
+  },
+  workshop: {
+    name:'کارگاه', icon:'⚙️', size:1, hp:40, maxHp:40,
+    cost:{scrap:50, wood:30}, desc:'تولید ضایعات',
+    canBuild:true, canMove:true, canDestroy:true,
+    upgradeable:true,
+    production: { food:0, water:0, scrap:3, wood:0, knowledge:0 },
+    specialAt5: '⚙️ تولید دانش در هر نوبت',
+    upgradeCost: (level) => ({ scrap: 30 + level*20, wood: 20 + level*10 })
+  },
+  radio: {
+    name:'برج رادیویی', icon:'📡', size:1, hp:30, maxHp:30,
+    cost:{scrap:40, wood:20}, desc:'+۱۰٪ شانس جذب بازمانده',
+    canBuild:true, canMove:true, canDestroy:true,
+    upgradeable:true,
+    production: { food:0, water:0, scrap:0, wood:0, knowledge:0 },
+    specialAt5: '📡 شانس جذب بسیار بالا',
+    upgradeCost: (level) => ({ scrap: 25 + level*15, wood: 15 + level*10 })
+  },
+  shelter: {
+    name:'پناهگاه', icon:'🏠', size:2, hp:50, maxHp:50,
+    cost:{scrap:30, wood:40}, desc:'+۵ ظرفیت جمعیت',
+    canBuild:true, canMove:true, canDestroy:true,
+    upgradeable:true,
+    production: { food:0, water:0, scrap:0, wood:0, knowledge:0 },
+    specialAt5: '🏠 ظرفیت جمعیت بسیار بالا',
+    upgradeCost: (level) => ({ scrap: 25 + level*15, wood: 30 + level*15 })
+  }
+};
+
+// ---------- رویدادهای شانسی ----------
+const RANDOM_EVENTS = [
+  {
+    name:'حمله زامبی‌ها', icon:'🧟', weight:20, minTurn:3,
+    effect(state, map) {
+      const buildings = map.getAllBuildings();
+      if (buildings.length === 0) return 'حمله زامبی‌ها دفع شد!';
+      // زامبی‌ها به ساختمان‌های سطح پایین‌تر حمله می‌کنند
+      const target = buildings.filter(b => b.level < 3).length > 0
+        ? buildings.filter(b => b.level < 3)[Math.floor(Math.random()*buildings.filter(b => b.level < 3).length)]
+        : buildings[Math.floor(Math.random()*buildings.length)];
+      const dmg = 15 + Math.floor(Math.random()*20);
+      target.hp -= dmg;
+      return `🧟 زامبی‌ها به ${BUILDING_TYPES[target.type].name} (سطح ${target.level}) حمله کردند! ${dmg} آسیب.`;
+    }
+  },
+  {
+    name:'رعد و برق', icon:'⚡', weight:15, minTurn:2,
+    effect(state, map) {
+      const buildings = map.getAllBuildings();
+      if (buildings.length === 0) return 'رعد و برق به جایی برخورد نکرد.';
+      const target = buildings[Math.floor(Math.random()*buildings.length)];
+      const dmg = 10 + Math.floor(Math.random()*15);
+      target.hp -= dmg;
+      return `⚡ رعد و برق به ${BUILDING_TYPES[target.type].name} اصابت کرد! ${dmg} آسیب.`;
+    }
+  },
+  {
+    name:'طوفان شن', icon:'🌪️', weight:12, minTurn:4,
+    effect(state, map) {
+      const loss = 5 + Math.floor(Math.random()*10);
+      state.resources.food -= loss;
+      state.resources.water -= loss;
+      return `🌪️ طوفان شن منابع را پراکنده کرد! ${loss} غذا و آب از دست رفت.`;
+    }
+  },
+  {
+    name:'کاروان بازمانده‌ها', icon:'🚶', weight:10, minTurn:5,
+    effect(state, map) {
+      const gain = 2 + Math.floor(Math.random()*3);
+      state.population += gain;
+      return `🚶 کاروانی از بازمانده‌ها به کلونی پیوستند! +${gain} نفر.`;
+    }
+  },
+  {
+    name:'غارتگران', icon:'🪓', weight:15, minTurn:3,
+    effect(state, map) {
+      const loss = 10 + Math.floor(Math.random()*20);
+      state.resources.scrap -= loss;
+      state.resources.wood -= loss;
+      return `🪓 غارتگران انبار را زدند! ${loss} ضایعات و چوب از دست رفت.`;
+    }
+  },
+  {
+    name:'باران شدید', icon:'🌧️', weight:10, minTurn:2,
+    effect(state, map) {
+      const gain = 10 + Math.floor(Math.random()*15);
+      state.resources.water += gain;
+      return `🌧️ باران شدید! +${gain} آب جمع شد.`;
+    }
+  },
+  {
+    name:'گیاهان وحشی', icon:'🌿', weight:8, minTurn:2,
+    effect(state, map) {
+      const gain = 8 + Math.floor(Math.random()*12);
+      state.resources.food += gain;
+      return `🌿 گیاهان خوراکی پیدا شد! +${gain} غذا.`;
+    }
+  }
+];
+
+// ---------- وضعیت بازی ----------
+let state = {
+  turn: 1,
+  day: 1,
+  resources: { food: 80, water: 80, scrap: 50, wood: 40, knowledge: 10 },
+  population: 10,
+  ration: 'normal',
+  expeditions: [],
+  log: [],
+  gameOver: false
+};
+
+// ---------- نقشه (گرید) ----------
+const MAP_SIZE = 10;
+let map = {
+  grid: [],
+  buildings: [],
+  selectedCell: null,
+  buildMode: false,
+  moveMode: false,
+  destroyMode: false,
+  pendingBuild: null,
+  pendingMove: null,
+
+  init() {
+    this.grid = [];
+    for (let y=0; y<MAP_SIZE; y++) {
+      this.grid[y] = [];
+      for (let x=0; x<MAP_SIZE; x++) {
+        this.grid[y][x] = null;
+      }
+    }
+    this.buildings = [];
+    this.placeBuilding('castle', 4, 4);
+    this.placeBuilding('farm', 1, 1);
+    this.placeBuilding('well', 7, 7);
+    this.placeBuilding('warehouse', 1, 7);
+    this.placeBuilding('shelter', 7, 1);
+    this.placeBuilding('wall', 4, 3);
+    this.placeBuilding('wall', 5, 4);
+    this.placeBuilding('wall', 4, 5);
+    this.placeBuilding('wall', 3, 4);
+  },
+
+  placeBuilding(type, x, y) {
+    const def = BUILDING_TYPES[type];
+    for (let dy=0; dy<def.size; dy++) {
+      for (let dx=0; dx<def.size; dx++) {
+        const nx = x+dx, ny = y+dy;
+        if (nx >= MAP_SIZE || ny >= MAP_SIZE || this.grid[ny][nx]) return false;
+      }
+    }
+    const b = {
+      id: Date.now() + Math.random(),
+      type, x, y, hp: def.maxHp, maxHp: def.maxHp,
+      level: 1  // سطح شروع
+    };
+    this.buildings.push(b);
+    for (let dy=0; dy<def.size; dy++) {
+      for (let dx=0; dx<def.size; dx++) {
+        this.grid[y+dy][x+dx] = b;
+      }
+    }
+    return true;
+  },
+
+  removeBuilding(b) {
+    const def = BUILDING_TYPES[b.type];
+    for (let dy=0; dy<def.size; dy++) {
+      for (let dx=0; dx<def.size; dx++) {
+        this.grid[b.y+dy][b.x+dx] = null;
+      }
+    }
+    this.buildings = this.buildings.filter(x => x.id !== b.id);
+  },
+
+  moveBuilding(b, nx, ny) {
+    const def = BUILDING_TYPES[b.type];
+    for (let dy=0; dy<def.size; dy++) {
+      for (let dx=0; dx<def.size; dx++) {
+        const cx = nx+dx, cy = ny+dy;
+        if (cx >= MAP_SIZE || cy >= MAP_SIZE) return false;
+        const existing = this.grid[cy][cx];
+        if (existing && existing.id !== b.id) return false;
+      }
+    }
+    for (let dy=0; dy<def.size; dy++) {
+      for (let dx=0; dx<def.size; dx++) {
+        this.grid[b.y+dy][b.x+dx] = null;
+      }
+    }
+    b.x = nx; b.y = ny;
+    for (let dy=0; dy<def.size; dy++) {
+      for (let dx=0; dx<def.size; dx++) {
+        this.grid[ny+dy][nx+dx] = b;
+      }
+    }
+    return true;
+  },
+
+  getBuildingAt(x, y) {
+    return this.grid[y] && this.grid[y][x];
+  },
+
+  getAllBuildings() {
+    return this.buildings;
+  },
+
+  getStorageCapacity() {
+    let cap = 100;
+    this.buildings.forEach(b => {
+      if (b.type === 'warehouse') cap += 100 * b.level;
+    });
+    return cap;
+  }
+};
+
+// ---------- توابع کمکی ----------
+function getMaxPop() {
+  let max = 10;
+  map.buildings.forEach(b => {
+    if (b.type === 'shelter') max += 5 * b.level;
+  });
+  return max;
+}
+function getRationMult() {
+  if (state.ration === 'low') return 0.5;
+  if (state.ration === 'high') return 1.5;
+  return 1;
+}
+function getMorale() {
+  if (state.ration === 'low') return 0.8;
+  if (state.ration === 'high') return 1.2;
+  return 1;
+}
+function addLog(msg, type='info') {
+  state.log.unshift({msg, type});
+  if (state.log.length > 80) state.log.pop();
+}
+
+// ---------- محاسبه تولید ساختمان بر اساس سطح ----------
+function getBuildingProduction(b) {
+  const def = BUILDING_TYPES[b.type];
+  const prod = {...def.production};
+  // هر سطح ۵۰٪ به تولید اضافه می‌کند
+  const mult = 1 + (b.level - 1) * 0.5;
+  Object.keys(prod).forEach(k => {
+    prod[k] = Math.round(prod[k] * mult);
+  });
+  // قابلیت ویژه سطح ۵
+  if (b.level >= 5) {
+    if (b.type === 'workshop') prod.knowledge = 2;
+    if (b.type === 'farm') prod.food += 3;
+    if (b.type === 'well') prod.water += 3;
+  }
+  return prod;
+}
+
+// ---------- رندر ----------
+function renderResources() {
+  const res = state.resources;
+  const rationMult = getRationMult();
+  const foodConsume = state.population * 1 * rationMult;
+  const waterConsume = state.population * 1 * rationMult;
+  const cap = map.getStorageCapacity();
+
+  const cards = [
+    {icon:'🍞', name:'غذا', value:Math.floor(res.food), delta:-foodConsume},
+    {icon:'💧', name:'آب', value:Math.floor(res.water), delta:-waterConsume},
+    {icon:'🔩', name:'ضایعات', value:Math.floor(res.scrap), delta:0},
+    {icon:'🪵', name:'چوب', value:Math.floor(res.wood), delta:0},
+    {icon:'📚', name:'دانش', value:Math.floor(res.knowledge), delta:0},
+    {icon:'👥', name:'جمعیت', value:state.population, delta:0, extra:`/${getMaxPop()}`}
+  ];
+
+  document.getElementById('resources').innerHTML = cards.map(c => `
+    <div class="res-card">
+      <span class="icon">${c.icon}</span>
+      <div class="name">${c.name}</div>
+      <div class="value">${c.value}${c.extra||''}</div>
+      <div class="delta ${c.delta>0?'pos':c.delta<0?'neg':''}">${c.delta>0?'+':''}${c.delta!==0?Math.round(c.delta):''}</div>
+    </div>
+  `).join('');
+}
+
+function renderMap() {
+  const mapEl = document.getElementById('map');
+  mapEl.style.gridTemplateColumns = `repeat(${MAP_SIZE}, 1fr)`;
+  mapEl.innerHTML = '';
+
+  for (let y=0; y<MAP_SIZE; y++) {
+    for (let x=0; x<MAP_SIZE; x++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.dataset.x = x;
+      cell.dataset.y = y;
+
+      const b = map.grid[y][x];
+      if (b) {
+        cell.classList.add('building');
+        if (b.x === x && b.y === y) {
+          cell.textContent = BUILDING_TYPES[b.type].icon;
+          // نشانگر سطح
+          if (b.level > 1) {
+            const badge = document.createElement('span');
+            badge.className = 'level-badge';
+            badge.textContent = b.level;
+            cell.appendChild(badge);
+          }
+          // رنگ بر اساس سلامتی
+          const hpPct = (b.hp / b.maxHp) * 100;
+          cell.style.background = hpPct < 30 ? 'rgba(248,81,73,.3)' : '#2d333b';
+        }
+      } else {
+        cell.classList.add('empty');
+      }
+
+      if (map.selectedCell && map.selectedCell.x === x && map.selectedCell.y === y) {
+        cell.classList.add('selected');
+      }
+
+      cell.addEventListener('click', () => onCellClick(x, y));
+      mapEl.appendChild(cell);
+    }
+  }
+}
+
+function renderSurvivors() {
+  document.getElementById('popCount').textContent = state.population;
+  document.getElementById('maxPop').textContent = getMaxPop();
+  document.querySelectorAll('#rationBtns button').forEach(b => {
+    b.classList.toggle('active', b.dataset.ration === state.ration);
+  });
+}
+
+function renderExpeditions() {
+  const container = document.getElementById('activeExps');
+  if (state.expeditions.length === 0) {
+    container.innerHTML = '<small style="color:var(--muted)">هیچ اعزام فعالی نیست.</small>';
+    return;
+  }
+  container.innerHTML = state.expeditions.map((e, i) => {
+    const pct = Math.min(100, ((e.total - e.remaining) / e.total) * 100);
+    return `
+      <div style="margin-bottom:6px; font-size:.75rem;">
+        <b>${e.typeName}</b> — ${e.people} نفر | ${e.remaining} نوبت
+        <div style="background:var(--panel2); border-radius:3px; height:6px; margin-top:3px; overflow:hidden;">
+          <div style="height:100%; background:var(--blue); width:${pct}%"></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderLog() {
+  document.getElementById('logPanel').innerHTML = state.log.map(l =>
+    `<div class="log-entry ${l.type}">${l.msg}</div>`
+  ).join('');
+}
+
+function renderAll() {
+  renderResources();
+  renderMap();
+  renderSurvivors();
+  renderExpeditions();
+  renderLog();
+  document.getElementById('turnNum').textContent = state.turn;
+  document.getElementById('dayNum').textContent = state.day;
+}
+
+// ---------- تعامل با نقشه ----------
+function onCellClick(x, y) {
+  const b = map.getBuildingAt(x, y);
+
+  if (map.buildMode && map.pendingBuild) {
+    const def = BUILDING_TYPES[map.pendingBuild];
+    if (state.resources.scrap >= def.cost.scrap && state.resources.wood >= def.cost.wood) {
+      if (map.placeBuilding(map.pendingBuild, x, y)) {
+        state.resources.scrap -= def.cost.scrap;
+        state.resources.wood -= def.cost.wood;
+        addLog(`🔨 ${def.name} ساخته شد!`, 'good');
+        map.pendingBuild = null;
+        map.buildMode = false;
+        document.getElementById('btnBuild').classList.remove('active');
+        closeBuildMenu();
+      } else {
+        addLog('⚠️ فضای کافی نیست!', 'warn');
+      }
+    } else {
+      addLog('⚠️ منابع کافی نیست!', 'warn');
+    }
+    renderAll();
+    return;
+  }
+
+  if (map.moveMode && map.pendingMove) {
+    if (map.moveBuilding(map.pendingMove, x, y)) {
+      addLog(`↔️ ${BUILDING_TYPES[map.pendingMove.type].name} جابه‌جا شد.`, 'info');
+      map.pendingMove = null;
+      map.moveMode = false;
+      document.getElementById('btnMove').classList.remove('active');
+    } else {
+      addLog('⚠️ نمی‌توان به اینجا منتقل کرد!', 'warn');
+    }
+    renderAll();
+    return;
+  }
+
+  if (map.destroyMode && b) {
+    const def = BUILDING_TYPES[b.type];
+    if (def.canDestroy) {
+      map.removeBuilding(b);
+      addLog(`💥 ${def.name} تخریب شد.`, 'warn');
+      map.destroyMode = false;
+      document.getElementById('btnDestroy').classList.remove('active');
+      renderAll();
+    } else {
+      addLog('⚠️ این ساختمان قابل تخریب نیست!', 'warn');
+    }
+    return;
+  }
+
+  if (b) {
+    map.selectedCell = {x, y};
+    openBuildingMenu(b);
+  } else {
+    map.selectedCell = null;
+    closeBuildingMenu();
+  }
+  renderMap();
+}
+
+// ---------- حالت‌های ساخت ----------
+function toggleBuildMode() {
+  map.buildMode = !map.buildMode;
+  map.moveMode = false;
+  map.destroyMode = false;
+  document.getElementById('btnBuild').classList.toggle('active', map.buildMode);
+  document.getElementById('btnMove').classList.remove('active');
+  document.getElementById('btnDestroy').classList.remove('active');
+  if (map.buildMode) openBuildMenu();
+  else closeBuildMenu();
+}
+
+function toggleMoveMode() {
+  map.moveMode = !map.moveMode;
+  map.buildMode = false;
+  map.destroyMode = false;
+  document.getElementById('btnMove').classList.toggle('active', map.moveMode);
+  document.getElementById('btnBuild').classList.remove('active');
+  document.getElementById('btnDestroy').classList.remove('active');
+  if (map.moveMode) {
+    addLog('↔️ روی ساختمانی که می‌خواهید جابه‌جا کنید کلیک کنید.', 'info');
+  }
+}
+
+function toggleDestroyMode() {
+  map.destroyMode = !map.destroyMode;
+  map.buildMode = false;
+  map.moveMode = false;
+  document.getElementById('btnDestroy').classList.toggle('active', map.destroyMode);
+  document.getElementById('btnBuild').classList.remove('active');
+  document.getElementById('btnMove').classList.remove('active');
+  if (map.destroyMode) {
+    addLog('💥 روی ساختمانی که می‌خواهید تخریب کنید کلیک کنید.', 'info');
+  }
+}
+
+// ---------- منوی ساخت ----------
+function openBuildMenu() {
+  const menu = document.getElementById('buildMenu');
+  const options = document.getElementById('buildOptions');
+  options.innerHTML = Object.entries(BUILDING_TYPES).filter(([k,v]) => v.canBuild).map(([key, def]) => `
+    <div class="build-option" onclick="selectBuild('${key}')">
+      <div>
+        <b>${def.icon} ${def.name}</b><br>
+        <small style="color:var(--muted)">${def.desc}</small>
+      </div>
+      <div class="cost">🔩${def.cost.scrap} 🪵${def.cost.wood}</div>
+    </div>
+  `).join('');
+  menu.classList.remove('hidden');
+}
+
+function closeBuildMenu() {
+  document.getElementById('buildMenu').classList.add('hidden');
+  map.buildMode = false;
+  map.pendingBuild = null;
+  document.getElementById('btnBuild').classList.remove('active');
+}
+
+function selectBuild(type) {
+  map.pendingBuild = type;
+  addLog(`🔨 ${BUILDING_TYPES[type].name} را روی نقشه انتخاب کنید.`, 'info');
+  closeBuildMenu();
+}
+
+// ---------- منوی ساختمان با سیستم ارتقا ----------
+function openBuildingMenu(b) {
+  const menu = document.getElementById('buildingMenu');
+  const def = BUILDING_TYPES[b.type];
+  document.getElementById('bmTitle').textContent = `${def.icon} ${def.name} — سطح ${b.level}`;
+
+  // ستاره‌های سطح
+  const stars = '⭐'.repeat(b.level) + '☆'.repeat(MAX_LEVEL - b.level);
+
+  let content = `
+    <div class="menu-row"><span>سطح</span><span class="level-stars">${stars}</span></div>
+    <div class="menu-row"><span>سلامتی</span><span>${b.hp}/${b.maxHp}</span></div>
+    <div class="menu-row"><span>توضیحات</span><span style="color:var(--muted)">${def.desc}</span></div>
+  `;
+
+  // نمایش تولید فعلی
+  const prod = getBuildingProduction(b);
+  const prodText = Object.entries(prod).filter(([k,v]) => v > 0).map(([k,v]) => {
+    const icons = {food:'🍞', water:'💧', scrap:'🔩', wood:'🪵', knowledge:'📚'};
+    return `${icons[k]}+${v}`;
+  }).join(' ');
+  if (prodText) {
+    content += `<div class="menu-row"><span>تولید فعلی</span><span style="color:var(--green)">${prodText}</span></div>`;
+  }
+
+  // منوی اختصاصی
+  if (b.type === 'warehouse') {
+    content += `<div class="menu-row"><span>ظرفیت</span><span>+${100 * b.level} منابع</span></div>`;
+  } else if (b.type === 'shelter') {
+    content += `<div class="menu-row"><span>ظرفیت جمعیت</span><span>+${5 * b.level} نفر</span></div>`;
+  } else if (b.type === 'radio') {
+    content += `<div class="menu-row"><span>شانس جذب</span><span>+${10 * b.level}٪</span></div>`;
+  } else if (b.type === 'castle') {
+    content += `<div class="menu-row"><span>جمعیت</span><span>${state.population} نفر</span></div>`;
+    content += `<div class="menu-row"><span>نوبت</span><span>${state.turn}</span></div>`;
+  }
+
+  // بخش ارتقا
+  if (def.upgradeable && b.level < MAX_LEVEL) {
+    const cost = def.upgradeCost(b.level);
+    const canAfford = state.resources.scrap >= cost.scrap &&
+                      state.resources.wood >= cost.wood &&
+                      state.resources.knowledge >= (cost.knowledge || 0);
+
+    // پیش‌نمایش تولید سطح بعد
+    const nextLevel = b.level + 1;
+    const nextMult = 1 + (nextLevel - 1) * 0.5;
+    const nextProd = Object.entries(def.production).filter(([k,v]) => v > 0).map(([k,v]) => {
+      const icons = {food:'🍞', water:'💧', scrap:'🔩', wood:'🪵', knowledge:'📚'};
+      return `${icons[k]}+${Math.round(v * nextMult)}`;
+    }).join(' ');
+
+    content += `
+      <div class="upgrade-section">
+        <h4>⬆️ ارتقا به سطح ${nextLevel}</h4>
+        <div class="upgrade-info">تولید جدید: ${nextProd || 'قابلیت ویژه'}</div>
+        <div class="upgrade-cost">
+          🔩${cost.scrap} 🪵${cost.wood} ${cost.knowledge ? `📚${cost.knowledge}` : ''}
+        </div>
+        <button class="upgrade" onclick="upgradeBuilding('${b.id}')" ${canAfford ? '' : 'disabled'}>
+          ⬆️ ارتقا
+        </button>
+      </div>
+    `;
+  } else if (b.level >= MAX_LEVEL) {
+    content += `
+      <div class="upgrade-section">
+        <h4>⭐ حداکثر سطح</h4>
+        <div class="upgrade-info" style="color:var(--orange);">${def.specialAt5}</div>
+      </div>
+    `;
+  }
+
+  // دکمه‌ها
+  content += `
+    <div style="display:flex; gap:6px; margin-top:10px;">
+      ${def.canMove ? `<button onclick="startMove('${b.id}')">↔️ جابه‌جایی</button>` : ''}
+      ${def.canDestroy ? `<button class="danger" onclick="destroyBuilding('${b.id}')">💥 تخریب</button>` : ''}
+    </div>
+  `;
+
+  document.getElementById('bmContent').innerHTML = content;
+  menu.classList.remove('hidden');
+}
+
+function closeBuildingMenu() {
+  document.getElementById('buildingMenu').classList.add('hidden');
+  map.selectedCell = null;
+  renderMap();
+}
+
+// ---------- ارتقای ساختمان ----------
+function upgradeBuilding(id) {
+  const b = map.buildings.find(x => x.id === id);
+  if (!b) return;
+  const def = BUILDING_TYPES[b.type];
+  if (b.level >= MAX_LEVEL) return;
+
+  const cost = def.upgradeCost(b.level);
+  if (state.resources.scrap < cost.scrap ||
+      state.resources.wood < cost.wood ||
+      state.resources.knowledge < (cost.knowledge || 0)) {
+    addLog('⚠️ منابع کافی برای ارتقا نیست!', 'warn');
+    return;
+  }
+
+  // کسر منابع
+  state.resources.scrap -= cost.scrap;
+  state.resources.wood -= cost.wood;
+  if (cost.knowledge) state.resources.knowledge -= cost.knowledge;
+
+  // افزایش سطح
+  b.level++;
+  // افزایش سلامتی
+  b.maxHp = Math.round(def.maxHp * (1 + (b.level - 1) * 0.3));
+  b.hp = b.maxHp;
+
+  addLog(`⬆️ ${def.name} به سطح ${b.level} ارتقا یافت!`, 'upgrade');
+
+  // انیمیشن ارتقا
+  const mapEl = document.getElementById('map');
+  mapEl.classList.remove('upgrading');
+  void mapEl.offsetWidth;
+  mapEl.classList.add('upgrading');
+
+  // باز کردن مجدد منو
+  openBuildingMenu(b);
+  renderAll();
+}
+
+function startMove(id) {
+  const b = map.buildings.find(x => x.id === id);
+  if (b) {
+    map.pendingMove = b;
+    map.moveMode = true;
+    closeBuildingMenu();
+    addLog(`↔️ ${BUILDING_TYPES[b.type].name} را به جای جدید منتقل کنید.`, 'info');
+  }
+}
+
+function destroyBuilding(id) {
+  const b = map.buildings.find(x => x.id === id);
+  if (b && BUILDING_TYPES[b.type].canDestroy) {
+    map.removeBuilding(b);
+    addLog(`💥 ${BUILDING_TYPES[b.type].name} تخریب شد.`, 'warn');
+    closeBuildingMenu();
+    renderAll();
+  }
+}
+
+// ---------- اعزام ----------
+function startExpedition() {
+  const type = document.getElementById('expType').value;
+  const count = parseInt(document.getElementById('expCount').value);
+  if (state.population <= count) { addLog('⚠️ بازمانده کافی نیست!', 'warn'); return; }
+
+  state.population -= count;
+  const typeNames = { food:'جستجوی غذا', water:'جستجوی آب', scrap:'جستجوی ضایعات', recruit:'جذب بازمانده' };
+  const total = 3 + Math.floor(Math.random()*3);
+
+  state.expeditions.push({
+    type, people: count, total, remaining: total, typeName: typeNames[type]
+  });
+  addLog(`🚀 اعزام «${typeNames[type]}» با ${count} نفر آغاز شد (${total} نوبت).`, 'info');
+  renderAll();
+}
+
+// ---------- رویدادهای شانسی ----------
+function triggerRandomEvent() {
+  const available = RANDOM_EVENTS.filter(e => state.turn >= e.minTurn);
+  if (available.length === 0) return;
+
+  const totalWeight = available.reduce((a,e) => a + e.weight, 0);
+  let roll = Math.random() * totalWeight;
+  let selected = available[0];
+
+  for (const e of available) {
+    roll -= e.weight;
+    if (roll <= 0) { selected = e; break; }
+  }
+
+  const result = selected.effect(state, map);
+  addLog(result, result.includes('از دست') || result.includes('حمله') || result.includes('اصابت') ? 'bad' : 'good');
+
+  showEventBanner(`${selected.icon} ${selected.name}`, result);
+
+  if (selected.name.includes('زامبی') || selected.name.includes('رعد')) {
+    const container = document.getElementById('mapContainer');
+    container.classList.remove('attack');
+    void container.offsetWidth;
+    container.classList.add('attack');
+  }
+  if (selected.name.includes('رعد')) {
+    const app = document.getElementById('app');
+    app.classList.remove('flash');
+    void app.offsetWidth;
+    app.classList.add('flash');
+  }
+}
+
+function showEventBanner(title, desc) {
+  const banner = document.getElementById('eventBanner');
+  banner.innerHTML = `<div style="font-size:1.2rem;">${title}</div><div style="font-size:.8rem; color:var(--muted); margin-top:4px;">${desc}</div>`;
+  banner.classList.remove('hidden');
+  setTimeout(() => banner.classList.add('hidden'), 4000);
+}
+
+// ---------- پردازش نوبت ----------
+function processTurn() {
+  if (state.gameOver) return;
+
+  const res = state.resources;
+  const rationMult = getRationMult();
+  const morale = getMorale();
+
+  // ۱) مصرف
+  const foodNeed = state.population * 1 * rationMult;
+  const waterNeed = state.population * 1 * rationMult;
+  res.food -= foodNeed;
+  res.water -= waterNeed;
+
+  // ۲) تولید ساختمان‌ها (بر اساس سطح)
+  map.buildings.forEach(b => {
+    const prod = getBuildingProduction(b);
+    res.food += prod.food * morale;
+    res.water += prod.water * morale;
+    res.scrap += prod.scrap * morale;
+    res.wood += prod.wood * morale;
+    res.knowledge += prod.knowledge * morale;
+  });
+
+  // ۳) تولید دانش پایه
+  res.knowledge += state.population * 0.5;
+
+  // ۴) محدودیت ظرفیت انبار
+  const cap = map.getStorageCapacity();
+  res.food = Math.min(res.food, cap);
+  res.water = Math.min(res.water, cap);
+  res.scrap = Math.min(res.scrap, cap);
+  res.wood = Math.min(res.wood, cap);
+
+  // ۵) رویداد شانسی
+  if (Math.random() < 0.3) {
+    triggerRandomEvent();
+  }
+
+  // ۶) مرگ بر اثر گرسنگی/کم‌آبی
+  if (res.food < 0 || res.water < 0) {
+    const deaths = Math.ceil(state.population * 0.1);
+    state.population = Math.max(0, state.population - deaths);
+    addLog(`💀 ${deaths} نفر بر اثر ${res.food<0?'گرسنگی':'کم‌آبی'} مردند!`, 'bad');
+  }
+
+  // ۷) مرگ بر اثر جیره کم
+  if (state.ration === 'low' && Math.random() < 0.1) {
+    state.population = Math.max(0, state.population - 1);
+    addLog('💀 یک نفر بر اثر بیماری ناشی از جیره کم مرد!', 'bad');
+  }
+
+  // ۸) تولد
+  if (res.food > 0 && res.water > 0 && state.population < getMaxPop() && Math.random() < 0.1) {
+    state.population++;
+    addLog('👶 یک نوزاد به دنیا آمد!', 'good');
+  }
+
+  // ۹) پیشرفت اعزام‌ها
+  state.expeditions.forEach(e => e.remaining--);
+  const finished = state.expeditions.filter(e => e.remaining <= 0);
+  state.expeditions = state.expeditions.filter(e => e.remaining > 0);
+
+  finished.forEach(e => {
+    const risk = 0.2;
+    if (Math.random() < risk) {
+      state.population = Math.max(0, state.population - 1);
+      addLog(`⚠️ اعزام «${e.typeName}» شکست خورد! یک نفر از دست رفت.`, 'bad');
+    } else {
+      let gained = '';
+      if (e.type === 'food') { res.food += 15 * e.people; gained = `+${15*e.people} غذا`; }
+      else if (e.type === 'water') { res.water += 15 * e.people; gained = `+${15*e.people} آب`; }
+      else if (e.type === 'scrap') { res.scrap += 12 * e.people; gained = `+${12*e.people} ضایعات`; }
+      else if (e.type === 'recruit') {
+        // شانس جذب بر اساس سطح برج رادیویی
+        const radioLevel = map.buildings.filter(b => b.type === 'radio').reduce((a,b) => a + b.level, 0);
+        const chance = 0.5 + radioLevel * 0.05;
+        if (Math.random() < chance && state.population < getMaxPop()) {
+          state.population += e.people;
+          gained = `${e.people} بازمانده جدید!`;
+        } else {
+          gained = 'کسی پیدا نشد';
+        }
+      }
+      addLog(`✅ اعزام «${e.typeName}» موفق بود! ${gained}`, 'good');
+      const mapEl = document.getElementById('map');
+      mapEl.classList.remove('returning');
+      void mapEl.offsetWidth;
+      mapEl.classList.add('returning');
+    }
+  });
+
+  // ۱۰) حذف ساختمان‌های تخریب‌شده
+  map.buildings = map.buildings.filter(b => b.hp > 0);
+  map.buildings.forEach(b => {
+    if (b.hp <= 0) {
+      map.removeBuilding(b);
+      addLog(`💥 ${BUILDING_TYPES[b.type].name} نابود شد!`, 'bad');
+    }
+  });
+
+  // ۱۱) بررسی پایان بازی
+  if (state.population <= 0) {
+    state.gameOver = true;
+    document.getElementById('gameOver').classList.remove('hidden');
+    addLog('☠️ همه بازمانده‌ها مردند. کلونی نابود شد!', 'bad');
+  }
+
+  // ۱۲) پیشروی زمان
+  state.turn++;
+  state.day = Math.ceil(state.turn / 3);
+
+  addLog(`— نوبت ${state.turn} آغاز شد —`, 'info');
+  renderAll();
+}
+
+// ---------- اتصال رویدادها ----------
+document.getElementById('endTurn').addEventListener('click', processTurn);
+document.getElementById('startExp').addEventListener('click', startExpedition);
+document.querySelectorAll('#rationBtns button').forEach(b => {
+  b.addEventListener('click', () => {
+    state.ration = b.dataset.ration;
+    addLog(`جیره‌بندی به «${b.dataset.ration==='low'?'کم':b.dataset.ration==='high'?'زیاد':'عادی'}» تغییر کرد.`, 'info');
+    renderSurvivors();
+  });
+});
+
+// ---------- شروع بازی ----------
+map.init();
+addLog('🏚️ کلونی شما تأسیس شد. ۱۰ بازمانده آماده‌اند!', 'good');
+addLog('💡 روی ساختمان‌ها کلیک کنید و آن‌ها را ارتقا دهید!', 'info');
+addLog('💡 هر سطح ارتقا، تولید را ۵۰٪ افزایش می‌دهد.', 'info');
+renderAll();
+</script>
+</body>
+</html>
