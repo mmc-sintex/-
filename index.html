@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>🏚️ کلونی سه‌بعدی</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+@import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700;900&display=swap');
+:root {
+  --bg:#0a0e14; --panel:rgba(19,24,32,.95); --panel2:#1a2330;
+  --border:#2a3441; --text:#e6edf3; --muted:#8b949e;
+  --green:#3fb950; --blue:#58a6ff; --red:#f85149;
+  --yellow:#d29922; --purple:#bc8cff; --orange:#f0883e;
+}
+body {
+  font-family:'Vazirmatn',sans-serif;
+  background:var(--bg); color:var(--text);
+  overflow:hidden; height:100vh; touch-action:manipulation;
+  -webkit-user-select:none; user-select:none;
+}
+#threeContainer { position:fixed; inset:0; z-index:0; }
+
+#mainMenu {
+  position:fixed; inset:0; background:rgba(0,0,0,.95); z-index:200;
+  display:flex; align-items:center; justify-content:center; flex-direction:column; gap:20px;
+  animation:fadeIn .5s ease;
+}
+#mainMenu.hidden { display:none; }
+#mainMenu h1 { font-size:2.5rem; color:var(--yellow); text-shadow:0 0 30px rgba(210,153,34,.3); }
+#mainMenu .subtitle { color:var(--muted); font-size:.9rem; }
+#mainMenu .menu-buttons { display:flex; gap:15px; flex-wrap:wrap; justify-content:center; }
+#mainMenu .menu-btn {
+  background:var(--panel2); border:2px solid var(--border); color:var(--text);
+  padding:15px 30px; border-radius:10px; cursor:pointer; font-family:inherit;
+  font-size:1rem; font-weight:700; transition:all .3s; min-width:180px;
+  -webkit-tap-highlight-color:transparent;
+}
+#mainMenu .menu-btn:hover { border-color:var(--yellow); transform:translateY(-3px); }
+#mainMenu .menu-btn:active { transform:scale(.95); }
+#mainMenu .menu-btn.single { border-color:var(--blue); }
+#mainMenu .menu-btn.single:hover { background:var(--blue); color:#000; }
+#mainMenu .menu-btn.multi { border-color:var(--purple); }
+#mainMenu .menu-btn.multi:hover { background:var(--purple); color:#000; }
+
+#seedScreen {
+  position:fixed; inset:0; background:rgba(0,0,0,.95); z-index:150;
+  display:flex; align-items:center; justify-content:center; flex-direction:column; gap:15px;
+}
+#seedScreen.hidden { display:none; }
+#seedScreen h1 { color:var(--yellow); font-size:1.5rem; }
+#seedScreen input {
+  background:var(--panel2); border:2px solid var(--border); color:var(--text);
+  padding:10px 15px; border-radius:8px; font-size:1rem; text-align:center;
+  font-family:inherit; width:200px;
+}
+#seedScreen .seed-buttons { display:flex; gap:10px; }
+#seedScreen button {
+  background:var(--green); color:#000; border:none; padding:12px 25px;
+  border-radius:8px; font-size:.9rem; font-weight:900; cursor:pointer; font-family:inherit;
+}
+#seedScreen button.random { background:var(--blue); }
+#seedScreen button.back { background:var(--panel2); color:var(--text); border:1px solid var(--border); }
+
+#comingSoon {
+  position:fixed; inset:0; background:rgba(0,0,0,.95); z-index:150;
+  display:flex; align-items:center; justify-content:center; flex-direction:column; gap:15px;
+}
+#comingSoon.hidden { display:none; }
+#comingSoon h1 { font-size:3rem; color:var(--purple); }
+#comingSoon p { color:var(--muted); font-size:1rem; }
+#comingSoon button {
+  background:var(--panel2); border:1px solid var(--border); color:var(--text);
+  padding:12px 25px; border-radius:8px; cursor:pointer; font-family:inherit; font-size:.9rem;
+}
+
+#uiOverlay {
+  position:fixed; inset:0; z-index:10; pointer-events:none;
+  display:flex; flex-direction:column; justify-content:space-between;
+}
+#uiOverlay > * { pointer-events:auto; }
+
+header {
+  background:var(--panel); backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+  padding:6px 10px; display:flex; justify-content:space-between; align-items:center;
+}
+header h1 { font-size:.9rem; color:var(--yellow); }
+#turnInfo { color:var(--muted); font-size:.65rem; }
+#turnInfo b { color:var(--blue); }
+
+#resources {
+  display:flex; gap:4px; padding:4px 8px;
+  background:var(--panel); backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--border); overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+}
+.res-card {
+  display:flex; align-items:center; gap:4px;
+  background:var(--panel2); border:1px solid var(--border); border-radius:5px;
+  padding:3px 8px; white-space:nowrap; font-size:.65rem; flex-shrink:0;
+}
+.res-card .icon { font-size:.85rem; }
+.res-card .value { font-weight:900; font-size:.75rem; }
+
+#bottomPanel {
+  display:flex; gap:4px; padding:6px 8px;
+  background:var(--panel); backdrop-filter:blur(12px);
+  border-top:1px solid var(--border); overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+}
+#bottomPanel button {
+  background:var(--panel2); border:1px solid var(--border); color:var(--text);
+  padding:8px 12px; border-radius:6px; cursor:pointer; font-family:inherit;
+  font-size:.75rem; white-space:nowrap; flex-shrink:0;
+  -webkit-tap-highlight-color:transparent;
+}
+#bottomPanel button:active { transform:scale(.95); }
+#bottomPanel button.primary { background:var(--green); color:#000; font-weight:700; }
+
+#logPanel {
+  position:fixed; left:8px; bottom:60px; width:200px;
+  max-height:120px; overflow-y:auto; z-index:20;
+  background:var(--panel); backdrop-filter:blur(8px);
+  border:1px solid var(--border); border-radius:6px; padding:4px;
+  -webkit-overflow-scrolling:touch;
+}
+.log-entry { padding:2px 4px; font-size:.6rem; color:var(--muted); border-bottom:1px solid var(--border); }
+.log-entry.good { color:var(--green); }
+.log-entry.bad { color:var(--red); }
+.log-entry.info { color:var(--blue); }
+
+::-webkit-scrollbar{width:3px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+</style>
+</head>
+<body>
+<div id="threeContainer"></div>
+
+<div id="mainMenu">
+  <h1>🏚️ کلونی پسا-آخرالزمانی</h1>
+  <p class="subtitle">در دنیای محدود، کلونی خود را بسازید، زامبی‌ها را نابود کنید و بر همه چیره شوید</p>
+  <div class="menu-buttons">
+    <button class="menu-btn single" onclick="openSeedScreen()">🎮 سینگل پلیر</button>
+    <button class="menu-btn multi" onclick="showComingSoon()">🌐 مولتی پلیر</button>
+  </div>
+</div>
+
+<div id="comingSoon" class="hidden">
+  <h1>🚧</h1>
+  <h1>Coming Soon</h1>
+  <p>حالت مولتی پلیر به زودی اضافه خواهد شد!</p>
+  <button onclick="closeComingSoon()">برگشت</button>
+</div>
+
+<div id="seedScreen" class="hidden">
+  <h1>🌍 ایجاد دنیای جدید</h1>
+  <p style="color:var(--muted);">سید دنیای خود را وارد کنید یا تصادفی انتخاب کنید:</p>
+  <input type="text" id="seedInput" placeholder="مثال: 12345" value="12345">
+  <div class="seed-buttons">
+    <button class="random" onclick="randomSeed()">🎲 تصادفی</button>
+    <button onclick="startGame()">شروع بازی</button>
+    <button class="back" onclick="closeSeedScreen()">برگشت</button>
+  </div>
+</div>
+
+<div id="uiOverlay" class="hidden">
+  <header>
+    <h1>🏚️ کلونی سه‌عدی</h1>
+    <div id="turnInfo">نوبت <b id="turnNum">۱</b></div>
+  </header>
+  <div id="resources"></div>
+  <div id="bottomPanel">
+    <button onclick="addBuilding('farm', Math.random()*4-2, Math.random()*4-2)">🌾 مزرعه</button>
+    <button onclick="addBuilding('well', Math.random()*4-2, Math.random()*4-2)">🕳️ چاه</button>
+    <button onclick="addBuilding('wall', Math.random()*4-2, Math.random()*4-2)">🧱 دیوار</button>
+    <button onclick="addBuilding('warehouse', Math.random()*4-2, Math.random()*4-2)">📦 انبار</button>
+    <button onclick="addBuilding('shelter', Math.random()*4-2, Math.random()*4-2)">🏠 پناهگاه</button>
+    <button onclick="addBuilding('workshop', Math.random()*4-2, Math.random()*4-2)">⚙️ کارگاه</button>
+    <button id="endTurn" class="primary">⏭️ پایان نوبت</button>
+  </div>
+</div>
+
+<div id="logPanel"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+<script>
+// =============================================================
+//   کلونی سه‌عدی - نسخه کامل
+// =============================================================
+
+// توابع منو
+function showComingSoon() {
+  document.getElementById('comingSoon').classList.remove('hidden');
+}
+function closeComingSoon() {
+  document.getElementById('comingSoon').classList.add('hidden');
+}
+function openSeedScreen() {
+  document.getElementById('mainMenu').classList.add('hidden');
+  document.getElementById('seedScreen').classList.remove('hidden');
+}
+function closeSeedScreen() {
+  document.getElementById('seedScreen').classList.add('hidden');
+  document.getElementById('mainMenu').classList.remove('hidden');
+}
+function randomSeed() {
+  document.getElementById('seedInput').value = Math.floor(Math.random() * 99999);
+}
+
+// سید
+function seededRandom(seed) {
+  let s = seed;
+  return function() {
+    s = (s * 16807 + 0) % 2147483647;
+    return (s - 1) / 2147483646;
+  };
+}
+
+// جهان محدود
+const WORLD_SIZE = 20;
+let worldMap = [];
+let zombieCount = 100;
+
+function generateWorldMap(seed) {
+  const rng = seededRandom(seed + 3000);
+  worldMap = [];
+  zombieCount = 0;
+  for (let y = 0; y < WORLD_SIZE; y++) {
+    worldMap[y] = [];
+    for (let x = 0; x < WORLD_SIZE; x++) {
+      const roll = rng();
+      if (roll < 0.3) {
+        worldMap[y][x] = 'zombie';
+        zombieCount++;
+      } else if (roll < 0.35) {
+        worldMap[y][x] = 'resource';
+      } else {
+        worldMap[y][x] = 'empty';
+      }
+    }
+  }
+  for (let y = -2; y <= 2; y++) {
+    for (let x = -2; x <= 2; x++) {
+      const cy = Math.floor(WORLD_SIZE/2) + y;
+      const cx = Math.floor(WORLD_SIZE/2) + x;
+      if (cy >= 0 && cy < WORLD_SIZE && cx >= 0 && cx < WORLD_SIZE) {
+        if (worldMap[cy][cx] === 'zombie') zombieCount--;
+        worldMap[cy][cx] = 'empty';
+      }
+    }
+  }
+}
+
+function generateWorld(seed) {
+  const rng = seededRandom(seed);
+  const regions = ['دشت', 'جنگل', 'کویر', 'تپه', 'ساحلی', 'کوهستانی'];
+  const region = regions[Math.floor(rng() * regions.length];
+  const weathers = ['معتدل', 'گرم', 'سرد', 'بارانی', 'خشک', 'مه‌آلود'];
+  const weather = weathers[Math.floor(rng() * weathers.length)];
+  generateWorldMap(seed);
+  let startResources = { food: 100, water: 100, scrap: 80, wood: 60, knowledge: 15, stone: 20, iron: 10, sulfur: 5 };
+  let startPop = 10;
+  switch(region) {
+    case 'دشت': startResources.food += 50; startResources.water += 30; break;
+    case 'جنگل': startResources.wood += 80; startResources.food += 20; break;
+    case 'کویر': startResources.water -= 40; startResources.scrap += 40; startPop = 8; break;
+    case 'تپه': startResources.scrap += 30; startResources.wood += 30; startResources.stone += 20; break;
+    case 'ساحلی': startResources.water += 60; startResources.food += 30; break;
+    case 'کوهستانی': startResources.scrap += 50; startResources.wood += 20; startResources.stone += 40; startResources.iron += 20; startPop = 7; break;
+  }
+  let weatherMult = { food: 1, water: 1, scrap: 1, wood: 1 };
+  switch(weather) {
+    case 'گرم': weatherMult.water = 0.7; weatherMult.food = 1.2; break;
+    case 'سرد': weatherMult.food = 0.8; weatherMult.wood = 1.3; break;
+    case 'بارانی': weatherMult.water = 1.5; weatherMult.food = 1.1; break;
+    case 'خشک': weatherMult.water = 0.5; weatherMult.scrap = 1.3; break;
+    case 'مه‌آلود': weatherMult.knowledge = 1.5; break;
+  }
+  return { seed, region, weather, startResources, startPop, weatherMult, rng };
+}
+
+// درخت فناوری
+const TECH_TREE = {
+  mining: { name: 'معدن‌کاری', icon: '⛏️', desc: 'قفل معادن سنگ و آهن', cost: { knowledge: 10, scrap: 20 }, unlocked: true, effects: { canMine: true } },
+  advancedMining: { name: 'معدن‌کاری پیشرفته', icon: '⛏️', desc: 'قفل معدن گوگرد', cost: { knowledge: 30, scrap: 50, iron: 10 }, requires: ['mining'], unlocked: false, effects: { canMineSulfur: true } },
+  weaponry: { name: 'سلح‌سازی', icon: '⚔️', desc: 'ساخت ارتش +۵۰٪ قدرت', cost: { knowledge: 20, scrap: 40, iron: 15 }, unlocked: false, effects: { armyPower: 1.5 } },
+  advancedWeaponry: { name: 'سلح‌اری پیشرفته', icon: '🔫', desc: 'ساخت ارتش +۱۰۰٪ قودرت', cost: { knowledge: 50, scrap: 80, iron: 30, sulfur: 10 }, requires: ['weaponry'], unlocked: false, effects: { armyPower: 2.5 } },
+  armor: { name: 'زره', icon: '🛡️', desc: 'کاهش تلفات ارتش ۳۰٪', cost: { knowledge: 25, scrap: 30, iron: 20 }, unlocked: false, effects: { armyDefense: 0.7 } },
+  zombieHunter: { name: 'زامبی‌کش', icon: '🧟', desc: '+۲۰٪ شانس پاکسازی زامبی‌ها', cost: { knowledge: 40, scrap: 60, sulfur: 15 }, requires: ['advancedWeaponry'], unlocked: false, effects: { zombieKillChance: 1.2 } },
+  agriculture: { name: 'کشاورزی پیشرفته', icon: '🌾', desc: 'تولید غذا +۱۰۰٪', cost: { knowledge: 15, scrap: 20 }, unlocked: false, effects: { foodProduction: 2 } },
+  engineering: { name: 'مهندسی', icon: '⚙️', desc: 'ساخت ساختمان‌ها سریع‌تر', cost: { knowledge: 35, scrap: 50, wood: 30 }, requires: ['mining'], unlocked: false, effects: { buildSpeed: 0.7 } }
+};
+let unlockedTechs = ['mining'];
+function getTechEffects() {
+  let effects = { armyPower: 1, armyDefense: 1, zombieKillChance: 1, foodProduction: 1, buildSpeed: 1, canMine: false, canMineSulfur: false };
+  unlockedTechs.forEach(techId => {
+    const tech = TECH_TREE[techId];
+    if (tech && tech.effects) {
+      Object.keys(tech.effects).forEach(key => {
+        if (typeof tech.effects[key] === 'number') {
+          effects[key] *= tech.effects[key];
+        } else {
+          effects[key] = tech.effects[key];
+        }
+      });
+    }
+ ​});
+  return effects;
+}
+
+// کلونی‌ها
+function generateClonies(seed) {
+  const rng = seededRandom(seed + 5000);
+  const count = 2 + Math.floor(rng() * 3);
+  const names = ['آتش', 'سپید', 'آهن', 'سایه', 'آزاد', 'پایدار', 'سبز', 'کهن'];
+  const personalities = ['صلح‌طلب', 'تجاری', 'جنگجو', 'محافظه‌کار', 'متغیر'];
+  const clonies = [];
+  for (let i = 0; i < count; i++) {
+    const name = names[Math.floor(rng() * names.length)] + (i > 0 ? ` ${i+1}` : '');
+    const personality = personalities[Math.floor(rng() * personalities.length)];
+    const distance = 8 + Math.floor(rng() * 8);
+    const angle = (i / count) * Math.PI * 2;
+    clonies.push({
+      id: i, name, personality,
+      x: Math.cos(angle) * distance, z: Math.sin(angle) * distance,
+      relation: Math.floor(rng() * 30) + 20,
+      population: 5 + Math.floor(rng() * 10),
+      buildings: 2 + Math.floor(rng() * 4),
+      isAlive: true, tradeCount: 0, allianceTurns: 0,
+      army: Math.floor(rng() * 5),
+      resources: { food: 30 + Math.floor(rng() * 50), water: 30 + Math.floor(rng() * 50), scrap: 20 + Math.floor(rng() * 40), wood: 20 + Math.floor(rng() * 40) }
+    });
+  }
+  return clonies;
+}
+
+function getRelationStatus(relation) {
+  if (relation >= 80) return { text: '🤝 متحد', color: 'var(--green)' };
+  if (relation >= 60) return { text: '😊 دوست', color: 'var(--blue)' };
+  if (relation >= 40) return { text: '😐 خنثی', color: 'var(--muted)' };
+  if (relation >= 20) return { text: '😠 تنش', color: 'var(--yellow)' };
+  return { text: '😠 دشمن', color: 'var(--red)' };
+}
+
+function getClonyReaction(clony, action) {
+  const rng = seededRandom(Date.now() + clony.id);
+  const roll = rng();
+  switch(clony.personality) {
+    case 'صلح‌لب':
+      if (action === 'trade') return roll < 0.8 ? 'موافقت' : 'مخالفت';
+      if (action === 'alliance') return roll < 0.6 ? 'موافقت' : 'مخالفت';
+      if (action === 'attack') return 'تسلیم';
+      return roll < 0.7 ? 'موافقت' : 'مخالفت';
+    case 'تجاری':
+      if (action === 'trade') return roll < 0.9 ? 'موافقت' : 'مخالفت';
+      if (action === 'alliance') return roll < 0.4 ? 'موافقت' : 'مخالفت';
+      if (action === 'attack') return roll < 0.3 ? 'تسلیم' : 'مقاومت';
+      return roll < 0.5 ? 'موافقت' : 'مخالفت';
+    case 'جنگجو':
+      if (action === 'trade') return roll < 0.4 ? 'موافقت' : 'مخالفت';
+      if (action === 'alliance') return roll < 0.3 ? 'موافقت' : 'مخالفت';
+      if (action === 'attack') return 'مقاومت';
+      return roll < 0.3 ? 'موافقت' : 'مخالفت';
+    case 'محافظه‌کار':
+      if (action === 'trade') return roll < 0.6 ? 'موافقت' : 'مخالفت';
+      if (action === 'alliance') return roll < 0.3 ? 'موافقت' : 'مخالفت';
+      if (action === 'attack') return roll < 0.5 ? 'تسلیم' : 'مقاومت';
+      return roll < 0.4 ? 'موافقت' : 'مخالفت';
+    case 'متغیر':
+      return roll < 0.5 ? 'موافقت' : 'مخالفت';
+    default:
+      return roll < 0.5 ? 'موافقت' : 'مخالفت';
+  }
+}
+
+// اکتشاف
+function generateExploreResult(people) {
+  const rng = seededRandom(Date.now());
+  const roll = rng();
+  if (roll < 0.15) {
+    const found = 1 + Math.floor(rng() * people);
+    return { type: 'survivor', amount: found, text: `🚶 ${found} بازمانده پید شند!` };
+  } else if (roll < 0.35) {
+    const amount = 10 * people + Math.floor(rng() * 20 * people);
+    return { type: 'food', amount, text: `🍞 ${amount} غذا پیدا شد!` };
+  } else if (roll < 0.55) {
+    const amount = 10 * people + Math.floor(rng() * 20 * people);
+    return { type: 'water', amount, text: `💧 ${amount} آب پیدا شد!` };
+  } else if (roll < 0.70) {
+    const amount = 5 * people + Math.floor(rng() * 15 * people);
+    return { type: 'scrap', amount, text: `🔩 ${amount} ضایعات پید ش!` };
+  } else if (roll < 0.85) {
+    const amount = 5 * people + Math.floor(rng() * 15 * people);
+    return { type: 'wood', amount, text: `🪵 ${amount} چوب پیدا شد!` };
+  } else if (roll < 0.95) {
+    const amount = 2 * people + Math.floor(rng() * 5 * people);
+    return { type: 'knowledge', amount, text: `📚 ${amount} دانش پیدا شد!` };
+  } else {
+    const deaths = Math.ceil(people * 0.3);
+    return { type: 'danger', amount: deaths, text: `🧟 حمله زامبی! ${deaths} نفر کشته شدند!` };
+  }
+}
+
+// اندینگ
+function checkEnding() {
+  if (state.day >= 100) return { type: 'victory', icon: '🏆', title: 'پیروزی! کلونی پایدار', desc: 'شما 100 روز در دنیای پسا-آخرالزمانی دوام آوردید.' };
+  const allAlive = clonies.filter(c => c.isAlive);
+  if (allAlive.length > 0 && allAlive.every(c => c.relation >= 80)) return { type: 'diplomat', icon: '🤝', title: 'دیپلمات بزرگ', desc: 'با همه کلونی‌ها اتحاد برقرار شد.' };
+  if (allAlive.length > 0 && allAlive.every(c => !c.isAlive)) return { type: 'conqueror', icon: '⚔️', title: 'فاتح سرزمین‌ها', desc: 'همه کلونی‌های رقیب نابود شدند.' };
+  if (state.population >= 200) return { type: 'city', icon: '🏙️', title: 'شهر بزرگ', desc: 'جمعیت به 200 نفر رسید.' };
+  if (zombieCount <= 0) return { type: 'zombieSlayer', icon: '🧟', title: 'نابودکننده زامبی‌ها', desc: 'همه زامبی‌ها کشته شدند. دنیا امن شد!' };
+  if (state.population <= 0) return { type: 'death', icon: '💀', title: 'شکست! همه مردند', desc: 'آخرین بازمانده‌ها هم جان خود را از دست دادند.' };
+  return null;
+}
+
+// تنظیمات سه‌عدی
+let scene, camera, renderer, controls;
+let worldData = null;
+let clonies = [];
+let buildings = [];
+let selectedBuilding = null;
+let buildMode = false;
+let moveMode = false;
+let destroyMode = false;
+let pendingBuild = null;
+let pendingMove = null;
+let buildingMeshes = new Map();
+let clonyMarkers = [];
+let clock = new THREE.Clock();
+
+function initThree() {
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0a0e14);
+  scene.fog = new THREE.FogExp2(0x0a0e14, 0.012);
+  camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
+  camera.position.set(15, 12, 15);
+  camera.lookAt(0, 0, 0);
+  renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.2;
+  document.getElementById('threeContainer').appendChild(renderer.domElement);
+  controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.08;
+  controls.maxPolarAngle = Math.PI / 2.1;
+  controls.minDistance = 3;
+  controls.maxDistance = 50;
+  controls.touchRotate = true;
+  controls.touchZoom = true;
+  controls.touchPan = true;
+  const ambientLight = new THREE.AmbientLight(0x404060, 0.4);
+  scene.add(ambientLight);
+  const dirLight = new THREE.DirectionalLight(0xffeedd, 1.2);
+  dirLight.position.set(10, 20, 5);
+  dirLight.castShadow = true;
+  dirLight.shadow.mapSize.width = 2048;
+  dirLight.shadow.mapSize.height = 2048;
+  scene.add(dirLight);
+  const fillLight = new THREE.DirectionalLight(0x4488ff, 0.3);
+  fillLight.position.set(-10, 5, -10);
+  scene.add(fillLight);
+  const hemiLight = new THREE.HemisphereLight(0x87ceeb, 0x362d1e, 0.6);
+  scene.add(hemiLight);
+}
+
+function createGround() {
+  const groundGeo = new THREE.PlaneGeometry(60, 60, 40, 40);
+  const groundMat = new THREE.MeshStandardMaterial({
+    color: worldData.region === 'کویر' ? 0x8B7353 : worldData.region === 'جنگل' ? 0x2d5a27 : worldData.region === 'ساحلی' ? 0xc2b280 : worldData.region === 'کوهستانی' ? 0x6b6b6b : 0x1a2330,
+    roughness: 0.9, metalness: 0.1, flatShading: true
+  });
+  const positions = groundGeo.attributes.position.array;
+  const rng = seededRandom(worldData.seed + 1000);
+  for (let i = 0; i < positions.length; i += 3) {
+    positions[i+1] = (rng() - 0.5) * 0.3;
+  }
+  groundGeo.computeVertexNormals();
+  const ground = new THREE.Mesh(groundGeo, groundMat);
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.y = -0.2;
+  ground.receiveShadow = true;
+  scene.add(ground);
+  const gridHelper = new THREE.GridHelper(40, 20, 0x2a3441, 0x1a2330);
+  gridHelper.position.y = 0.01;
+  scene.add(gridHelper);
+  return ground;
+}
+
+function createEnvironment() {
+  const rng = seededRandom(worldData.seed + 2000);
+  const count = worldData.region === 'جنگل' ? 30 : worldData.region === 'دشت' ? 10 : worldData.region === 'کویر' ? 5 : 15;
+  for (let i = 0; i < count; i++) {
+    const x = (rng() - 0.5) * 30;
+    const z = (rng() - 0.5) * 30;
+    if (Math.abs(x) < 6 && Math.abs(z) < 6) continue;
+    if (rng() > 0.5) {
+      const tree = createTree(rng);
+      tree.position.set(x, 0, z);
+      scene.add(tree);
+    } else {
+      const rock = createRock(rng);
+      rock.position.set(x, 0, z);
+      scene.add(rock);
+    }
+  }
+}
+
+function createTree(rng) {
+  const group = new THREE.Group();
+  const trunkGeo = new THREE.CylinderGeometry(0.1, 0.15, 0.5 + rng() * 0.3, 4);
+  const trunkMat = new THREE.MeshStandardMaterial({ color: 0x4a3728 });
+  const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+  trunk.position.y = 0.25;
+  group.add(trunk);
+  const leafGeo = new THREE.SphereGeometry(0.3 + rng() * 0.2, 5, 5);
+  const leafMat = new THREE.MeshStandardMaterial({ color: worldData.region === 'کویر' ? 0x5a7a3a : 0x2d5a27, roughness: 0.8 });
+  const leaf = new THREE.Mesh(leafGeo, leafMat);
+  leaf.position.y = 0.6 + rng() * 0.2;
+  group.add(leaf);
+  return group;
+}
+
+function createRock(rng) {
+  const geo = new THREE.DodecahedronGeometry(0.2 + rng() * 0.2, 0);
+  const mat = new THREE.MeshStandardMaterial({ color: 0x808080, roughness: 0.9, metalness: 0.1 });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.y = 0.1;
+  mesh.rotation.set(rng() * Math.PI, rng() * Math.PI, 0);
+  return mesh;
+}
+
+function createClonyMarker(clony) {
+  const group = new THREE.Group();
+  const poleGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.5, 4);
+  const poleMat = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+  const pole = new THREE.Mesh(poleGeo, poleMat);
+  pole.position.y = 0.25;
+  group.add(pole);
+  const flagGeo = new THREE.PlaneGeometry(0.2, 0.15);
+  const colors = [0xff4444, 0x44ff44, 0x4444ff, 0xffff44, 0xff44ff];
+  const flagMat = new THREE.MeshStandardMaterial({ color: colors[clony.id % colors.length], side: THREE.DoubleSide });
+  const flag = new THREE.Mesh(flagGeo, flagMat);
+  flag.position.set(0.1, 0.4, 0);
+  group.add(flag);
+  group.position.set(clony.x, 0, clony.z);
+  return group;
+}
+
+function updateClonyMarkers() {
+  clonyMarkers.forEach(m => scene.remove(m));
+  clonyMarkers = [];
+  clonies.forEach(c => {
+    if (c.isAlive) {
+      const marker = createClonyMarker(c);
+      scene.add(marker);
+      clonyMarkers.push(marker);
+    }
+  });
+}
+
+// وضعیت بازی
+let state = {
+  turn: 1, day: 1,
+  resources: { food: 100, water: 100, scrap: 80, wood: 60, knowledge: 15, stone: 20, iron: 10, sulfur: 5 },
+  population: 10, ration: 'normal',
+  expeditions: [], explorations: [],
+  army: 0, log: [],
+  gameOver: false, endingTriggered: false
+};
+
+function getRationMult() {
+  if (state.ration === 'low') return 0.5;
+  if (state.ration === 'high') return 1.5;
+  return 1;
+}
+function getMorale() {
+  if (state.ration === 'low') return 0.8;
+  if (state.ration === 'high') return 1.2;
+  return 1;
+}
+function addLog(msg, type='info') {
+  state.log.unshift({msg, type});
+  if (state.log.length > 50) state.log.pop();
+  renderLog();
+}
+
+function renderLog() {
+  document.getElementById('logPanel').innerHTML = state.log.map(l =>
+    `<div class="log-entry ${l.type}">${l.msg}</div>`
+  ).join('');
+}
+
+function getBuildingProduction(b) {
+  const def = BUILDING_TYPES[b.type];
+  const prod = {...def.production};
+  const mult = 1 + (b.level - 1) * 0.5;
+  const techEffects = getTechEffects();
+  if (worldData && worldData.weatherMult) {
+    Object.keys(prod).forEach(k => {
+      if (worldData.weatherMult[k]) {
+        prod[k] = Math.round(prod[k] * worldData.weatherMult[k]);
+      }
+    });
+  }
+  if (b.type === 'farm') {
+    prod.food = Math.round(prod.food * techEffects.foodProduction);
+  }
+  Object.keys(prod).forEach(k => {
+    prod[k] = Math.round(prod[k] * mult);
+  });
+  return prod;
+}
+
+function getStorageCapacity() {
+  let cap = 200;
+  buildings.forEach(b => {
+    if (b.type === 'warehouse') cap += 100 * b.level;
+  });
+  return cap;
+}
+
+function getMaxPop() {
+  let max = 20;
+  buildings.forEach(b => {
+    if (b.type === 'shelter') max += 10 * b.level;
+  });
+  return max;
+}
+
+// ساختمان‌ها
+const BUILDING_TYPES = {
+  castle: { name:'قلعه', icon:'🏰', size:2, hp:200, maxHp:200, cost:{scrap:60, wood:80}, desc:'قلعه مرکزی', canBuild:true, canMove:true, canDestroy:false, upgradeable:true, maxLevel:20, production: { food:0, water:0, scrap:0, wood:0, knowledge:0 }, upgradeCost: (level) => ({ scrap: 40 + level*10, wood: 30 + level*8, knowledge: level*2 }) },
+  wall: { name:'دیوار', icon:'🧱', size:1, hp:80, maxHp:80, cost:{scrap:5, wood:2}, desc:'دیوار دفاعی', canBuild:true, canMove:true, canDestroy:true, upgradeable:true, maxLevel:20, production: { food:0, water:0, scrap:0, wood:0, knowledge:0 }, upgradeCost: (level) => ({ scrap: 10 + level*2, wood: 5 + level*1 }) },
+  farm: { name:'مزرعه', icon:'🌾', size:2, hp:60, maxHp:60, cost:{scrap:15, wood:25}, desc:'تولید غذا', canBuild:true, canMove:true, canDestroy:true, upgradeable:true, maxLevel:20, production: { food:5, water:0, scrap:0, wood:0, knowledge:0 }, upgradeCost: (level) => ({ scrap: 15 + level*6, wood: 20 + level*6 }) },
+  well: { name:'چاه آب', icon:'🕳️', size:1, hp:40, maxHp:40, cost:{scrap:20, wood:10}, desc:'تولید آب', canBuild:true, canMove:true, canDestroy:true, upgradeable:true, maxLevel:20, production: { food:0, water:5, scrap:0, wood:0, knowledge:0 }, upgradeCost: (level) => ({ scrap: 15 + level*6, wood: 10 + level*4 }) },
+  warehouse: { name:'انبار', icon:'📦', size:2, hp:80, maxHp:80, cost:{scrap:30, wood:40}, desc:'ظرفیت ذخیره', canBuild:true, canMove:true, canDestroy:true, upgradeable:true, maxLevel:20, production: { food:0, water:0, scrap:0, wood:0, knowledge:0 }, upgradeCost: (level) => ({ scrap: 25 + level*10, wood: 30 + level*10 }) },
+  workshop: { name:'کارگاه', icon:'⚙️', size:1, hp:50, maxHp:50, cost:{scrap:50, wood:30}, desc:'تولید ضایعات', canBuild:true, canMove:true, canDestroy:true, upgradeable:true, maxLevel:20, production: { food:0, water:0, scrap:3, wood:0, knowledge:0 }, upgradeCost: (level) => ({ scrap: 30 + level*12, wood: 20 + level*6 }) },
+  radio: { name:'برج رادیویی', icon:'📡', size:1, hp:40, maxHp:40, cost:{scrap:40, wood:20}, desc:'جذب بازمانده', canBuild:true, canMove:true, canDestroy:true, upgradeable:true, maxLevel:20, production: { food:0, water:0, scrap:0, wood:0, knowledge:0 }, upgradeCost: (level) => ({ scrap: 25 + level*8, wood: 15 + level*6 }) },
+  shelter: { name:'پناهگاه', icon:'🏠', size:2, hp:70, maxHp:70, cost:{scrap:30, wood:40}, desc:'ظرفیت جمعیت', canBuild:true, canMove:true, canDestroy:true, upgradeable:true, maxLevel:20, production: { food:0, water:0, scrap:0, wood:0, knowledge:0 }, upgradeCost: (level) => ({ scrap: 25 + level*10, wood: 30 + level*10 }) },
+  stoneMine: { name:'معدن سنگ', icon:'⛰️', size:1, hp:50, maxHp:50, cost:{scrap:30, wood:20}, desc:'تولید سنگ', canBuild: true, canMove: true, canDestroy: true, upgradeable: true, maxLevel: 10, production: { stone: 3, scrap: 0, wood: 0, food: 0, water: 0, knowledge: 0 }, upgradeCost: (level) => ({ scrap: 20 + level*8, wood: 15 + level*5 }), requires: 'mining' },
+  ironMine: { name:'معدن آهن', icon:'⛏️', size:1, hp:50, maxHp:50, cost:{scrap:40, wood:30}, desc:'تولید آهن', canBuild: true, canMove: true, canDestroy: true, upgradeable: true, maxLevel: 10, production: { iron: 2, scrap: 0, wood: 0, food: 0, water: 0, knowledge: 0 }, upgradeCost: (level) => ({ scrap: 25 + level*10, wood: 20 + level*8 }), requires: 'mining' },
+  sulfurMine: { name:'معدن گوگرد', icon:'💛', size:1, hp:50, maxHp:50, cost:{scrap:50, wood:40}, desc:'تولید گوگرد', canBuild: true, canMove: true, canDestroy: true, upgradeable: true, maxLevel: 10, production: { sulfur: 1, scrap: 0, wood: 0, food: 0, water: 0, knowledge: 0 }, upgradeCost: (level) => ({ scrap: 30 + level*12, wood: 25 + level*10 }), requires: 'advancedMining' },
+  barracks: { name:'پادگان', icon:'🏛️', size:2, hp:100, maxHp:100, cost:{scrap:60, wood:50, stone: 30}, desc:'ساخت ارتش - هر نوبت +۲ سرباز', canBuild: true, canMove: true, canDestroy: true, upgradeable: true, maxLevel: 10, production: { army: 2, food: 0, water: 0, scrap: 0, wood: 0, knowledge: 0 }, upgradeCost: (level) => ({ scrap: 40 + level*15, wood: 30 + level*12, stone: 20 + level*10 }) }
+};
+
+// مدل‌های سه‌عدی
+function createBuildingMesh(type, level = 1) {
+  const group = new THREE.Group();
+  const def = BUILDING_TYPES[type];
+  const size = def.size;
+  const colorMap = { castle: 0x8B4513, wall: 0x696969, farm: 0x228B22, well: 0x4682B4, warehouse: 0xDEB887, workshop: 0x808080, radio: 0xC0C0C0, shelter: 0xA0522D, stoneMine: 0x808080, ironMine: 0xB87333, sulfurMine: 0xFFFF00, barracks: 0x8B0000 };
+  const color = colorMap[type] || 0x808080;
+  const bodyGeo = new THREE.BoxGeometry(size * 0.8, 0.4 + level * 0.08, size * 0.8);
+  const bodyMat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.6, metalness: 0.3 });
+  const body = new THREE.Mesh(bodyGeo, bodyMat);
+  body.position.y = 0.2 + level * 0.04;
+  body.castShadow = true;
+  body.receiveShadow = true;
+  group.add(body);
+  const roofGeo = new THREE.ConeGeometry(size * 0.5, 0.3 + level * 0.04, 4);
+  const roofMat = new THREE.MeshStandardMaterial({ color: 0x8B0000, roughness: 0.7, metalness: 0.2 });
+  const roof = new THREE.Mesh(roofGeo, roofMat);
+  roof.position.y = 0.5 + level * 0.08;
+  roof.rotation.y = Math.PI / 4;
+  group.add(roof);
+  for (let i = 0; i < Math.min(level, 4); i++) {
+    const windowGeo = new THREE.PlaneGeometry(0.1, 0.15);
+    const windowMat = new THREE.MeshStandardMaterial({ color: 0xffdd44, emissive: 0xffdd44, emissiveIntensity: 0.5 + level * 0.05 });
+    const window = new THREE.Mesh(windowGeo, windowMat);
+    window.position.set((size * 0.4) * (i % 2 === 0 ? 1 : -1), 0.3 + level * 0.04, (size * 0.4) * (i < 2 ? 1 : -1));
+    group.add(window);
+  }
+  for (let i = 0; i < Math.min(level, 5); i++) {
+    const ringGeo = new THREE.TorusGeometry(0.12 + i * 0.04, 0.015, 8, 8);
+    const ringMat = new THREE.MeshStandardMaterial({ color: 0xffd700, emissive: 0xffd700, emissiveIntensity: 0.4 });
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    ring.position.y = 0.55 + level * 0.08 + i * 0.04;
+    ring.rotation.x = Math.PI / 2;
+    group.add(ring);
+  }
+  if (type === 'wall') {
+    group.remove(body);
+    group.remove(roof);
+    const wallGeo = new THREE.BoxGeometry(0.8, 0.5 + level * 0.08, 0.15);
+    const wallMat = new THREE.MeshStandardMaterial({ color: 0x808080, roughness: 0.8 });
+    const wall = new THREE.Mesh(wallGeo, wallMat);
+    wall.position.y = 0.25 + level * 0.04;
+    wall.castShadow = true;
+    wall.receiveShadow = true;
+    group.add(wall);
+    for (let i = -0.3; i <= 0.3; i += 0.3) {
+      const spikeGeo = new THREE.ConeGeometry(0.03, 0.1, 4);
+      const spikeMat = new THREE.MeshStandardMaterial({ color: 0x606060 });
+      const spike = new THREE.Mesh(spikeGeo, spikeMat);
+      spike.position.set(i, 0.35 + level * 0.04, 0);
+      group.add(spike);
+    }
+  }
+  if (type === 'well') {
+    group.remove(body);
+    group.remove(roof);
+    const wellGeo = new THREE.CylinderGeometry(0.3, 0.4, 0.4 + level * 0.04, 12);
+    const wellMat = new THREE.MeshStandardMaterial({ color: 0x4682B4, roughness: 0.5 });
+    const well = new THREE.Mesh(wellGeo, wellMat);
+    well.position.y = 0.2 + level * 0.02;
+    well.castShadow = true;
+    well.receiveShadow = true;
+    group.add(well);
+    const waterGeo = new THREE.CircleGeometry(0.25, 12);
+    const waterMat = new THREE.MeshStandardMaterial({ color: 0x4488ff, transparent: true, opacity: 0.7, emissive: 0x4488ff, emissiveIntensity: 0.2 });
+    const water = new THREE.Mesh(waterGeo, waterMat);
+    water.rotation.x = -Math.PI / 2;
+    water.position.y = 0.35 + level * 0.02;
+    group.add(water);
+  }
+  if (type === 'stoneMine' || type === 'ironMine' || type === 'sulfurMine') {
+    group.remove(body);
+    group.remove(roof);
+    const mineGeo = new THREE.CylinderGeometry(0.3, 0.5, 0.3 + level * 0.05, 6);
+    const mineMat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.9 });
+    const mine = new THREE.Mesh(mineGeo, mineMat);
+    mine.position.y = 0.15 + level * 0.025;
+    mine.castShadow = true;
+    mine.receiveShadow = true;
+    group.add(mine);
+    const entryGeo = new THREE.BoxGeometry(0.15, 0.2, 0.1);
+    const entryMat = new THREE.MeshStandardMaterial({ color: 0x000000 });
+    const entry = new THREE.Mesh(entryGeo, entryMat);
+    entry.position.set(0, 0.1, 0.3);
+    group.add(entry);
+  }
+  if (type === 'barracks') {
+    group.remove(roof);
+    const towerGeo = new THREE.BoxGeometry(0.1, 0.4 + level * 0.05, 0.1);
+    const towerMat = new THREE.MeshStandardMaterial({ color: 0x8B0000 });
+    const tower = new THREE.Mesh(towerGeo, towerMat);
+    tower.position.set(0.3, 0.3 + level * 0.025, 0.3);
+    group.add(tower);
+    const tower2 = tower.clone();
+    tower2.position.set(-0.3, 0.3 + level * 0.025, -0.3);
+    group.add(tower2);
+  }
+  return group;
+}
+
+function addBuilding(type, x, z) {
+  const def = BUILDING_TYPES[type];
+  if (!def) return;
+  if (state.resources.scrap < def.cost.scrap || state.resources.wood < def.cost.wood) {
+    addLog(`⚠️ منابع کافی برای ${def.name} نیست!`, 'bad');
+    return;
+  }
+  state.resources.scrap -= def.cost.scrap;
+  state.resources.wood -= def.cost.wood;
+  const b = { id: Date.now() + Math.random(), type, x, z, hp: def.maxHp, maxHp: def.maxHp, level: 1, mesh: null };
+  buildings.push(b);
+  const mesh = createBuildingMesh(type, 1);
+  mesh.position.set(x, 0, z);
+  scene.add(mesh);
+  b.mesh = mesh;
+  buildingMeshes.set(b.id, mesh);
+  addLog(`🔨 ${def.name} ساخته شد!`, 'good');
+  renderResources();
+}
+
+function removeBuilding(b) {
+  scene.remove(b.mesh);
+  buildingMeshes.delete(b.id);
+  buildings = buildings.filter(x => x.id !== b.id);
+}
+
+function moveBuilding(b, nx, nz) {
+  b.x = nx;
+  b.z = nz;
+  b.mesh.position.set(nx, 0, nz);
+}
+
+function getBuildingAt(x, z) {
+  const threshold = 0.8;
+  return buildings.find(b => Math.abs(b.x - x) < threshold && Math.abs(b.z - z) < threshold);
+}
+
+// رندر
+function renderResources() {
+  const res = state.resources;
+  const rationMult = getRationMult();
+  const foodConsume = state.population * 1 * rationMult;
+  const waterConsume = state.population * 1 * rationMult;
+  const cap = getStorageCapacity();
+  const cards = [
+    {icon:'🍞', name:'غذا', value:Math.floor(res.food), delta:-foodConsume},
+    {icon:'💧', name:'آب', value:Math.floor(res.water), delta:-waterConsume},
+    {icon:'🔩', name:'ضایعات', value:Math.floor(res.scrap), delta:0},
+    {icon:'🪵', name:'چوب', value:Math.floor(res.wood), delta:0},
+    {icon:'📚', name:'دانش', value:Math.floor(res.knowledge), delta:0},
+    {icon:'⛰️', name:'سنگ', value:Math.floor(res.stone), delta:0},
+    {icon:'⛏️', name:'آهن', value:Math.floor(res.iron), delta:0},
+    {icon:'💛', name:'گوگرد', value:Math.floor(res.sulfur), delta:0},
+    {icon:'👥', name:'جمعیت', value:state.population, delta:0, extra:`/${getMaxPop()}`},
+    {icon:'⚔️', name:'ارتش', value:state.army, delta:0}
+  ];
+  document.getElementById('resources').innerHTML = cards.map(c => `
+    <div class="res-card">
+      <span class="icon">${c.icon}</span>
+      <span class="value">${c.value}${c.extra||''}</span>
+      <span class="delta ${c.delta>0?'pos':c.delta<0?'neg':''}">${c.delta>0?'+':''}${c.delta!==0?Math.round(c.delta):''}</span>
+    </div>
+  `).join('');
+  document.getElementById('turnNum').textContent = state.turn;
+}
+
+function renderUI() {
+  renderResources();
+  document.getElementById('popCount').textContent = state.population;
+  document.getElementById('worldSeed').textContent = worldData.seed;
+  document.getElementById('weatherType').textContent = worldData.weather;
+  document.getElementById('regionType').textContent = worldData.region;
+  document.getElementById('dayCounter').textContent = state.day;
+  document.getElementById('zombieCount').textContent = zombieCount;
+  document.getElementById('armyCount').textContent = state.army;
+}
+
+// پردازش نوبت
+function processTurn() {
+  if (state.gameOver || state.endingTriggered) return;
+  const res = state.resources;
+  const rationMult = getRationMult();
+  const morale = getMorale();
+  const foodNeed = state.population * 1 * rationMult;
+  const waterNeed = state.population * 1 * rationMult;
+  res.food -= foodNeed;
+  res.water -= waterNeed;
+  buildings.forEach(b => {
+    const prod = getBuildingProduction(b);
+    res.food += prod.food * morale;
+    res.water += prod.water * morale;
+    res.scrap += prod.scrap * morale;
+    res.wood += prod.wood * morale;
+    res.knowledge += prod.knowledge * morale;
+    res.stone += (prod.stone || 0) * morale;
+    res.iron += (prod.iron || 0) * morale;
+    res.sulfur += (prod.sulfur || 0) * morale;
+    if (b.type === 'barracks' && prod.army) {
+      state.army += Math.floor(prod.army * morale);
+    }
+  });
+  res.knowledge += state.population * 0.5;
+  const cap = getStorageCapacity();
+  res.food = Math.min(res.food, cap);
+  res.water = Math.min(res.water, cap);
+  res.scrap = Math.min(res.scrap, cap);
+  res.wood = Math.min(res.wood, cap);
+  if (Math.random() < 0.3) {
+    triggerRandomEvent();
+  }
+  if (res.food < 0 || res.water < 0) {
+    const deaths = Math.ceil(state.population * 0.1);
+    state.population = Math.max(0, state.population - deaths);
+    addLog(`💀 ${deaths} نفر مردند!`, 'bad');
+  }
+  if (res.food > 0 && res.water > 0 && state.population < getMaxPop() && Math.random() < 0.12) {
+    state.population++;
+    addLog('👶 نوزاد!', 'good');
+  }
+  state.expeditions.forEach(e => e.remaining--);
+  const finished = state.expeditions.filter(e => e.remaining <= 0);
+  state.expeditions = state.expeditions.filter(e => e.remaining > 0);
+  finished.forEach(e => {
+    const risk = 0.2;
+    if (Math.random() < risk) {
+      state.population = Math.max(0, state.population - 1);
+      addLog('⚠️ اعزام شکست خورد!', 'bad');
+    } else {
+      let gained = '';
+      if (e.type === 'food') { res.food += 20 * e.people; gained = `+${20*e.people} غذا`; }
+      else if (e.type === 'water') { res.water += 20 * e.people; gained = `+${20*e.people} آب`; }
+      else if (e.type === 'scrap') { res.scrap += 15 * e.people; gained = `+${15*e.people} ضایعات`; }
+      else if (e.type === 'recruit') {
+        const radioLevel = buildings.filter(b => b.type === 'radio').reduce((a,b) => a + b.level, 0);
+        const chance = 0.5 + radioLevel * 0.05;
+        if (Math.random() < chance) {
+          state.population += e.people;
+          gained = `${e.people} نفر جدید!`;
+        } else {
+          gained = 'کسی پید نشد';
+        }
+      }
+      addLog(`✅ موفق! ${gained}`, 'good');
+    }
+  });
+  state.explorations.forEach(e => e.remaining--);
+  const finishedExplores = state.explorations.filter(e => e.remaining <= 0);
+  state.explorations = state.explorations.filter(e => e.remaining > 0);
+  finishedExplores.forEach(e => {
+    const result = generateExploreResult(e.people);
+    if (result.type === 'survivor') {
+      state.population += result.amount;
+      addLog(result.text, 'good');
+    } else if (result.type === 'danger') {
+      state.population = Math.max(0, state.population - result.amount);
+      addLog(result.text, 'bad');
+    } else {
+      state.resources[result.type] += result.amount;
+      addLog(result.text, 'explore');
+    }
+  });
+  buildings = buildings.filter(b => b.hp > 0);
+  buildings.forEach(b => {
+    if (b.hp <= 0) {
+      removeBuilding(b);
+      addLog(`💥 ${BUILDING_TYPES[b.type].name} نابود شد!`, 'bad');
+    }
+  });
+  clonies.forEach(c => {
+    if (c.isAlive) {
+      if (c.allianceTurns > 0) c.allianceTurns--;
+      if (c.allianceTurns <= 0 && c.relation > 50) c.relation -= 0.5;
+      if (c.relation < 20 && Math.random() < 0.05) {
+        const dmg = 5 + Math.floor(Math.random() * 10);
+        const target = buildings.length > 0 ? buildings[Math.floor(Math.random()*buildings.length)] : null;
+        if (target) {
+          target.hp -= dmg;
+          addLog(`⚔️ ${c.name} به ${BUILDING_TYPES[target.type].name} حمله کرد! ${dmg} آسیب`, 'bad');
+        }
+      }
+    }
+ ​});
+  checkAndTriggerEnding();
+  state.turn++;
+  state.day = Math.ceil(state.turn / 3);
+  addLog(`— نوبت ${state.turn} —`, 'info');
+  renderUI();
+}
+
+// شروع بازی
+function startGame() {
+  const seed = parseInt(document.getElementById('seedInput').value) || Math.floor(Math.random() * 99999);
+  document.getElementById('seedInput').value = seed;
+  worldData = generateWorld(seed);
+  state.resources = {...worldData.startResources};
+  state.population = worldData.startPop;
+  clonies = generateClonies(seed);
+  unlockedTechs = ['mining'];
+  document.getElementById('seedScreen').classList.add('hidden');
+  document.getElementById('uiOverlay').classList.remove('hidden');
+  initThree();
+  createGround();
+  createEnvironment();
+  updateClonyMarkers();
+  addBuilding('castle', 0, 0);
+  addBuilding('farm', -3, -3);
+  addBuilding('well', 3, 3);
+  addBuilding('warehouse', -3, 3);
+  addBuilding('shelter', 3, -3);
+  for (let i = -2; i <= 2; i++) {
+    addBuilding('wall', i, -4);
+    addBuilding('wall', i, 4);
+    addBuilding('wall', -4, i);
+    addBuilding('wall', 4, i);
+  }
+  addLog(`🏚️ دنیای جدید با سید ${seed} ایجاد شد!`, 'good');
+  addLog(`🌍 منطقه: ${worldData.region} | آب و هوا: ${worldData.weather}`, 'info');
+  addLog(`🏴 ${clonies.length} کلونی دیگر در این سرزمین وجود دارد.`, 'diplomacy');
+  addLog(`🧟 ${zombieCount} زامبی در جهان باقی مانده است.`, 'army');
+  addLog('🔬 از درخت فناوری برای پیشرفت استفاده کنید.', 'tech');
+  renderUI();
+  function animate() {
+    requestAnimationFrame(animate);
+    const delta = clock.getDelta();
+    controls.update();
+    renderer.render(scene, camera);
+  }
+  animate();
+}
+
+// اتصال رویدادها
+document.getElementById('endTurn').addEventListener('click', processTurn);
+document.getElementById('seedInput').addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') startGame();
+});
+
+window.addEventListener('resize', () => {
+  if (camera) {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  }
+});
+</script>
+</body>
+</html>
